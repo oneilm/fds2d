@@ -38,7 +38,8 @@ endif
 
 
 
-csrcs = test_wrs2d.c ../src/cprini.c ../src/quadtree.c ../src/wrs2d.c
+csrcs = test_wrs2d.c ../src/cprini.c ../src/quadtree.c ../src/wrs2d.c \
+  ../src/kernels.c
 
 xsrcs = 
 

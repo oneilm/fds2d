@@ -2,8 +2,9 @@
 #include <complex.h>
 
 //
-// tree declariations for 2d butterfly code
+// tree declarations for 2d fast direct solver code
 //
+
 
 
 

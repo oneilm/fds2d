@@ -7,6 +7,8 @@
 
 #include "cprini.h"
 #include "quadtree.h"
+#include "wrs2d.h"
+#include "kernels.h"
 
 int main (int argc, char* argv[])
 {
@@ -81,9 +83,12 @@ int main (int argc, char* argv[])
   quadtree_print_tree(nboxes, tree);
   quadtree_plotboxes("2dtree", nboxes, tree, "Level restricted tree");
 
-  //void (*fkernel)() = &bf2d_kernel_h0;
+  void (*fkernel)() = &l2d_single;
+  double diag = 0.5;
 
-  
+  wrs2d_factor(nboxes, tree, diag, fkernel);
+
+
   
 
   return 0;
