@@ -199,19 +199,108 @@ void quadtree_getleafs(int nboxes, struct quadtree_box *tree, int *nleafs,
 
 
 
+void quadtree_restrict1(int *nlev, int *nboxes, struct quadtree_box *tree) {
+  
+  // This routine makes a single pass through the tree (meaning the
+  // leaves) and refines boxes whose neighbors are more than 1 level
+  // down.
+
+  int nleafs;
+  int *leafs = malloc(*nboxes *sizeof(int));
+  quadtree_getleafs(*nboxes, tree, &nleafs, leafs);
+
+  //cprinf("number of leafs = ", &nleafs, 1);
+  //cprinf("leafs = ", leafs, nleafs);
+
+  // scan through the leafs
+  int i, ilev, j, ifsplit;
+  double dx, dy, center[2], width, sc;
+  
+  for (i=0; i<nleafs; i++) {
+
+    ifsplit = 0;
+
+    ilev = tree[leafs[i]].level;
+    center[0] = tree[leafs[i]].center[0];
+    center[1] = tree[leafs[i]].center[1];
+    width = tree[leafs[i]].width;
+
+    sc = .75*1.000001;
+
+    for (j = 0; j<*nboxes; j++) {
+
+      if (tree[j].level == ilev+1) {
+        dx = abs(tree[j].center[0] - center[0]);
+        dy = abs(tree[j].center[1] - center[1]);
+
+        if ((dx <= sc*width) && (dy <= sc*width)) {
+          // check to see if this box has children, if so, need to
+          // refine leafs[i]
+          if (tree[j].child[0] != NULL) ifsplit = 1;
+          if (tree[j].child[1] != NULL) ifsplit = 1;
+          if (tree[j].child[2] != NULL) ifsplit = 1;
+          if (tree[j].child[3] != NULL) ifsplit = 1;          
+        }
+      }
+
+      if (ifsplit == 1) break;
+    }
+
+    if (ifsplit == 1) {
+      quadtree_split(tree[leafs[i]].id, nboxes, tree);
+    }
+    
+  }
+
+  return;
+}
+
+
+
+
+
+void quadtree_build_lr(double *center, double width,
+                    int npts, double *xys, int *perm, 
+                  struct quadtree_opts opts, int *nlev,
+                    int *nboxes, struct quadtree_box *tree) {
+
+  // this routine builds a level restricted tree by iteratively fixing
+  // a fully adaptive one (not a fast algorithm)
+  
+  quadtree_build(center, width, npts, xys, perm, opts, nlev, nboxes, tree);
+  
+  int i, nprev;
+  for (i=0; i<100; i++) {
+    cprinf("fixing adaptive tree, iteration i = ", &i, 1);
+    nprev = *nboxes;
+    cprinf("before quadtree_restrict1, nboxes = ", &nprev, 1);
+    quadtree_restrict1(nlev, nboxes, tree);
+    cprinf("after quadtree_restrict1, nboxes = ", nboxes, 1);
+    if (nprev == *nboxes) break;
+    cprin_skipline(1);
+  }
+
+  return;
+}
+
+
+
+
+
 void quadtree_build(double *center, double width,
                     int npts, double *xys, int *perm, 
                   struct quadtree_opts opts, int *nlev,
                     int *nboxes, struct quadtree_box *tree) {
 
   // This routine builds a stadard quadtree on the points xys, and
-  // will originally be used for a basic fast direct solver
+  // will originally be used for a basic fast direct solver. The tree
+  // is pruned and fully adaptive.
   //
   //     Input:
   //
   //     Output:
   //
-
+  
   // initialize the permutation vector
   int i;
   for (i=0; i<npts; i++) {

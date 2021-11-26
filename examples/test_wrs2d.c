@@ -17,13 +17,13 @@ int main (int argc, char* argv[])
 
   cprin_init("stdout","fort.13");  
   
-  int npts = 4000;
+  int npts = 1000;
   
   cprin_skipline(1);
   cprinf("npts = ", &npts, 1);
 
   //
-  // generate some random points and build a tree on them
+  // generate a curve and build a tree on them
   //
   srand(0);
   double *xys = malloc(2*npts*sizeof(double));
@@ -60,9 +60,9 @@ int main (int argc, char* argv[])
   //opts.maxlev = opts.maxlev + 2;
   //opts.maxlev = 4 + nfac;
 
-  opts.maxlev = 1;
+  opts.maxlev = 30;
   opts.maxboxes = maxboxes;  
-  opts.nmax = 50;
+  opts.nmax = 20;
   opts.maxwidth = 10;
 
   cprinf("opts.maxlev = ", &opts.maxlev, 1);
@@ -77,26 +77,12 @@ int main (int argc, char* argv[])
   double width, center[2];
   
   quadtree_get_extent(npts, xys, center, &width);
-  quadtree_build(center, width, npts, xys, perm, opts, &nlev, &nboxes, tree);
+  quadtree_build_lr(center, width, npts, xys, perm, opts, &nlev, &nboxes, tree);
   quadtree_print_tree(nboxes, tree);
-  quadtree_plotboxes("2dtree", nboxes, tree, "the 2d boxes");
+  quadtree_plotboxes("2dtree", nboxes, tree, "Level restricted tree");
 
+  //void (*fkernel)() = &bf2d_kernel_h0;
 
-  // now check that the list generation is working, generate list1 for
-  // a box
-  int nprev;
-  for (i=0; i<100; i++) {
-    cprinf("fixing tree, iteration i = ", &i, 1);
-    nprev = nboxes;
-    cprinf("before quadtree_restrict1, nboxes = ", &nprev, 1);
-    quadtree_restrict1(&nlev, &nboxes, tree);
-    cprinf("after quadtree_restrict1, nboxes = ", &nboxes, 1);
-    if (nprev == nboxes) break;
-    cprin_skipline(1);
-  }
-
-  quadtree_print_tree(nboxes, tree);  
-  quadtree_plotboxes("2dtree_lr", nboxes, tree, "the level restricted 2d boxes");
   
   
 

@@ -55,9 +55,12 @@ void quadtree_getboxes_bylevel(int nboxes, struct quadtree_box *tree,
 void quadtree_getleafs(int nboxes, struct quadtree_box *tree, int *nleafs,
                      int *leafs);
 
-//void quadtree_build_old(int m, double *targs, int *pt, int n, double *srcs, int *ps,
-//                 struct quadtree_opts opts, int *nlev,
-//                  int *nboxes, struct quadtree_box *tree);
+void quadtree_restrict1(int *nlev, int *nboxes, struct quadtree_box *tree);
+
+void quadtree_build_lr(double *center, double width,
+                    int npts, double *xys, int *perm, 
+                  struct quadtree_opts opts, int *nlev,
+                  int *nboxes, struct quadtree_box *tree);
 
 void quadtree_build(double *center, double width,
                     int npts, double *xys, int *perm, 
