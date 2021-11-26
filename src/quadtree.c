@@ -11,6 +11,41 @@
 
 
 
+void quadtree_get_extent(int npts, double *xys, double *center, double *width) {
+
+  // get the bounding box for the points in xys
+
+  double xmin, xmax, ymin, ymax, x, y;
+  xmin = xys[0];
+  xmax = xys[0];
+  ymin = xys[1];
+  ymax = xys[1];;
+
+  int i;
+  for (i=0; i<npts; i++) {
+    x = xys[2*i];
+    y = xys[2*i+1];
+    if (x > xmax) xmax = x;
+    if (y > ymax) ymax = y;
+    if (x < xmin) xmin = x;
+    if (y < ymin) ymin = y;
+  }
+
+  center[0] = (xmin + xmax)/2;
+  center[1] = (ymin + ymax)/2;
+
+  double w = (xmax-xmin);
+  if ((ymax-ymin) > w) {
+    w = (ymax-ymin);
+  }
+  *width = w*(1.0 + 1.0e-8);
+
+  return;
+}
+  
+
+
+
 void quadtree_unpermute(int m, int n, int *p, double *xs) {
   //
   // unpermute the array xs in place
@@ -163,88 +198,73 @@ void quadtree_getleafs(int nboxes, struct quadtree_box *tree, int *nleafs,
 
 
 
-void quadtree_build(int m, double *targs, int *pt, int n, double *srcs, int *ps,
+
+void quadtree_build(double *center, double width,
+                    int npts, double *xys, int *perm, 
                   struct quadtree_opts opts, int *nlev,
-                  int *nboxes, struct quadtree_box *tree) {
+                    int *nboxes, struct quadtree_box *tree) {
+
+  // This routine builds a stadard quadtree on the points xys, and
+  // will originally be used for a basic fast direct solver
   //
-  // this routine builds a uniform pruned tree on srcs and targs
-  // according to the parameters in opts
+  //     Input:
   //
-  //     input:
-  // m - number of targets
-  // targs - the targets in 2d
-  // n - number of sources
-  // srcs - the source points in 2d
-  // opts - tree options, structure for futureproofing
+  //     Output:
   //
-  //     output:
-  // targs - on output, have been re-ordered
-  // pt - permutation vector re-ordering targets to be contiguous
-  // srcs - on output, have been re-ordered
-  // ps - permutation vector re-ordering sources to be contiguous
-  // nlev - the number of levels in the tree, 0 means just root
-  // nboxes - total number of boxes created
-  // tree - array of box structs, linked together by pointers
-  //
-  //
-  
+
   // initialize the permutation vector
   int i;
-  for (i=0; i<m; i++) {
-    pt[i]=i;
+  for (i=0; i<npts; i++) {
+    perm[i]=i;
   }
 
-  for (i=0; i<n; i++) {
-    ps[i]=i;
-  }
 
   
   //
   // find the bounding box
   //
-  double xmin, xmax, ymin, ymax, x, y;
-  xmin = srcs[0];
-  xmax = srcs[0];
-  ymin = srcs[1];
-  ymax = srcs[1];;
+  /* double xmin, xmax, ymin, ymax, x, y; */
+  /* xmin = xys[0]; */
+  /* xmax = xys[0]; */
+  /* ymin = xys[1]; */
+  /* ymax = xys[1];; */
   
-  for (i=0; i<n; i++) {
-    x = srcs[2*i];
-    y = srcs[2*i+1];
-    if (x > xmax) xmax = x;
-    if (y > ymax) ymax = y;
-    if (x < xmin) xmin = x;
-    if (y < ymin) ymin = y;
-    x = targs[2*i];
-    y = targs[2*i+1];
-    if (x > xmax) xmax = x;
-    if (y > ymax) ymax = y;
-    if (x < xmin) xmin = x;
-    if (y < ymin) ymin = y;
-  }
+  /* for (i=0; i<npts; i++) { */
+  /*   x = xys[2*i]; */
+  /*   y = xys[2*i+1]; */
+  /*   if (x > xmax) xmax = x; */
+  /*   if (y > ymax) ymax = y; */
+  /*   if (x < xmin) xmin = x; */
+  /*   if (y < ymin) ymin = y; */
+  /* } */
 
   
   //
   // construct the inital box
   //
   *nboxes = 0;
+  *nlev = -1;
+  if (npts <= 0) {
+    cprin_message("exiting tree build, no points");
+    return;
+  }
+  
   tree[0].id = *nboxes;
   tree[0].level = 0;
-  tree[0].center[0] = (xmin+xmax)/2;
-  tree[0].center[1] = (ymin+ymax)/2;
+  //tree[0].center[0] = (xmin+xmax)/2;
+  //tree[0].center[1] = (ymin+ymax)/2;
+  tree[0].center[0] = center[0];
+  tree[0].center[1] = center[1];
 
-  double w = (xmax-xmin);
-  if ((ymax-ymin) > w) w = (ymax-ymin);
-  w = w*(1.0 + 1.0e-8);
-  tree[0].width = w;
+  //double w = (xmax-xmin);
+  //if ((ymax-ymin) > w) w = (ymax-ymin);
+  //w = w*(1.0 + 1.0e-8);
+  //tree[0].width = w;
+  tree[0].width = width;
 
-  tree[0].nsrcs = n;
-  tree[0].srcs = srcs;
-  tree[0].ps = ps;
-
-  tree[0].ntargs = m;
-  tree[0].targs = targs;
-  tree[0].pt = pt;
+  tree[0].npts = npts;
+  tree[0].xys = xys;
+  tree[0].perm = perm;
 
   tree[0].parent = NULL;
 
@@ -258,14 +278,16 @@ void quadtree_build(int m, double *targs, int *pt, int n, double *srcs, int *ps,
   // now run the subdivisions
   //
   int lev, ifsplit, ntemp, ifdone, nnn, ifchild;
-  //int ifsrc, iftarg;
-  
 
   *nlev = 0;
-  int maxboxes, nmax;
-  maxboxes = opts.maxboxes;
-  nmax = opts.nmax;
+  int maxboxes;
+  //int nmax;
 
+  maxboxes = opts.maxboxes;
+  //nmax = opts.nmax;
+
+
+  
   
   for (lev=0; lev<opts.maxlev; lev++) {
 
@@ -290,13 +312,12 @@ void quadtree_build(int m, double *targs, int *pt, int n, double *srcs, int *ps,
       // criteria
       //
       if (ifchild == 1) {
-        ifsplit = 1;
-        //if ((tree[nnn].nsrcs+tree[nnn].ntargs) > opts.nmax) ifsplit=1;
-        //if (tree[nnn].width > opts.maxwidth) ifsplit=1;
+        if ((tree[nnn].npts) > opts.nmax) ifsplit=1;
+        if (tree[nnn].width > opts.maxwidth) ifsplit=1;
       }
 
       if (ifsplit == 1) {
-        if (*nboxes+4 >maxboxes) {
+        if (*nboxes+4 > maxboxes) {
           cprin_message("on split, maxboxes will be exceeded");
           cprinf("nboxes = ", nboxes, 1);
           exit(0);
@@ -311,7 +332,18 @@ void quadtree_build(int m, double *targs, int *pt, int n, double *srcs, int *ps,
   }
 
   return;
+  
+  
+
+  
+
 }
+
+
+
+
+
+
 
 
 
@@ -359,39 +391,23 @@ void quadtree_plotboxes(char *filename, int nboxes, struct quadtree_box *tree,
 
 
   // plot the sources now
-  int nsrcs = tree[0].nsrcs;
-  int ntargs = tree[0].ntargs;
-  double *srcs = tree[0].srcs;
-  double *targs = tree[0].targs;
+  int npts = tree[0].npts;
+  double *xys = tree[0].xys;
 
   fprintf(fp, "print('. . . plotting sources')\n");
-  fprintf(fp, "xs = np.zeros(%d)\n", nsrcs);
-  fprintf(fp, "ys = np.zeros(%d)\n", nsrcs);
+  fprintf(fp, "xs = np.zeros(%d)\n", npts);
+  fprintf(fp, "ys = np.zeros(%d)\n", npts);
 
-  for (i=0; i<nsrcs; i++) {
-    fprintf(fp, "xs[%d] = %e\n", i, srcs[2*i]);
+  for (i=0; i<npts; i++) {
+    fprintf(fp, "xs[%d] = %e\n", i, xys[2*i]);
   }
 
-  for (i=0; i<nsrcs; i++) {
-    fprintf(fp, "ys[%d] = %e\n", i, srcs[2*i+1]);
+  for (i=0; i<npts; i++) {
+    fprintf(fp, "ys[%d] = %e\n", i, xys[2*i+1]);
   }
 
   fprintf(fp, "plt.scatter(xs, ys, s=5, c='blue', alpha=0.4)\n");
 
-  
-  fprintf(fp, "print('. . . plotting targets')\n");
-  fprintf(fp, "xs = np.zeros(%d)\n", ntargs);
-  fprintf(fp, "ys = np.zeros(%d)\n", ntargs);
-  for (i=0; i<ntargs; i++) {
-    fprintf(fp, "xs[%d] = %e\n", i, targs[2*i]);
-  }
-
-  for (i=0; i<ntargs; i++) {
-    fprintf(fp, "ys[%d] = %e\n", i, targs[2*i+1]);
-  }
-
-  fprintf(fp, "plt.scatter(xs, ys, s=5, c='red', alpha=0.4)\n");
-  
   fprintf(fp, "plt.axis('equal')\n");
   fprintf(fp, "plt.axis('on')\n");
   fprintf(fp, "plt.tight_layout()\n");
@@ -428,25 +444,19 @@ void quadtree_split(int ibox, int *nboxes, struct quadtree_box *tree) {
   double w = tree[ibox].width;
 
 
-  int nsrcs = tree[ibox].nsrcs;
-  double *srcs = tree[ibox].srcs;
-  int *ps = tree[ibox].ps;
-
-  int ntargs = tree[ibox].ntargs;
-  double *targs = tree[ibox].targs;
-  int *pt = tree[ibox].pt;
+  int npts = tree[ibox].npts;
+  double *xys = tree[ibox].xys;
+  int *perm = tree[ibox].perm;
 
   
   //
-  // first collect the sources
+  // first collect the nodes
   //
-  int is[4], its[4], ns[4], nts[4];
+  int is[4], ns[4];
   int i;
   for (i=0; i<4; ++i) {
     is[i] = 0;
     ns[i] = 0;
-    its[i] = 0;
-    nts[i] = 0;
   }
 
 
@@ -456,25 +466,15 @@ void quadtree_split(int ibox, int *nboxes, struct quadtree_box *tree) {
   //
   int ikey;
 
-  for (i=0; i<nsrcs; i++) {
-    quadtree_key(tree[ibox].center, &srcs[2*i], &ikey);
+  for (i=0; i<npts; i++) {
+    quadtree_key(tree[ibox].center, &xys[2*i], &ikey);
     ns[ikey] = ns[ikey] + 1;
-  }
-
-  for (i=0; i<ntargs; i++) {
-    quadtree_key(tree[ibox].center, &targs[2*i], &ikey);
-    nts[ikey] = nts[ikey] + 1;
   }
 
   is[0] = 0;
   is[1] = ns[0];
   is[2] = ns[0]+ns[1];
   is[3] = ns[0]+ns[1]+ns[2];
-  
-  its[0] = 0;
-  its[1] = nts[0];
-  its[2] = nts[0]+nts[1];
-  its[3] = nts[0]+nts[1]+nts[2];
   
   //
   // add the new boxes to the tree, setting up correct pointers now
@@ -484,7 +484,7 @@ void quadtree_split(int ibox, int *nboxes, struct quadtree_box *tree) {
   
   for (j=0; j<4; ++j) {
     
-    if ((ns[j]+nts[j] > 0) ) {
+    if ( ns[j] > 0 ) {
       
       tree[nb].id = nb;
       tree[nb].level = lev+1;
@@ -504,13 +504,9 @@ void quadtree_split(int ibox, int *nboxes, struct quadtree_box *tree) {
         tree[nb].center[1] = yc+w/4;
       }
 
-      tree[nb].nsrcs = ns[j];
-      tree[nb].srcs = &(srcs[2*is[j]]);
-      tree[nb].ps = &ps[is[j]];
-      
-      tree[nb].ntargs = nts[j];
-      tree[nb].targs = &(targs[2*its[j]]);
-      tree[nb].pt = &pt[its[j]];
+      tree[nb].npts = ns[j];
+      tree[nb].xys = &(xys[2*is[j]]);
+      tree[nb].perm = &perm[is[j]];
       
       tree[nb].parent = &(tree[ibox]);
 
@@ -527,7 +523,7 @@ void quadtree_split(int ibox, int *nboxes, struct quadtree_box *tree) {
 
 
   //
-  // now collect all the sources that are in each box, permuting them
+  // now collect all the points that are in each box, permuting them
   // as need be
   //
   int ind;
@@ -535,11 +531,11 @@ void quadtree_split(int ibox, int *nboxes, struct quadtree_box *tree) {
   for (j=0; j<4; ++j) {
     ind = is[j];
 
-    for (i=is[j]; i<nsrcs; ++i) {
-      quadtree_key(tree[ibox].center, &srcs[2*i], &ikey);
+    for (i=is[j]; i<npts; ++i) {
+      quadtree_key(tree[ibox].center, &xys[2*i], &ikey);
       if (ikey == j) {
-        quadtree_swapd(2, &srcs[2*i], &srcs[2*ind]);
-        quadtree_swapi(1, &ps[i], &ps[ind]);
+        quadtree_swapd(2, &xys[2*i], &xys[2*ind]);
+        quadtree_swapi(1, &perm[i], &perm[ind]);
         ind=ind+1;
       }
     }
@@ -547,23 +543,6 @@ void quadtree_split(int ibox, int *nboxes, struct quadtree_box *tree) {
   }
   
 
-  //
-  // and collect all the targets that are in each box, permuting them
-  // as need be
-  //
-  for (j=0; j<4; ++j) {
-    ind = its[j];
-
-    for (i=its[j]; i<ntargs; ++i) {
-      quadtree_key(tree[ibox].center, &targs[2*i], &ikey);
-      if (ikey == j) {
-        quadtree_swapd(2, &targs[2*i], &targs[2*ind]);
-        quadtree_swapi(1, &pt[i], &pt[ind]);
-        ind=ind+1;
-      }
-    }
-    
-  }
   
   return;
 }
@@ -572,11 +551,12 @@ void quadtree_split(int ibox, int *nboxes, struct quadtree_box *tree) {
 
 
 
-void quadtree_key(double *center, double *src, int *ikey) {
+void quadtree_key(double *center, double *xy, int *ikey) {
   //
-  // get the quadrant that src is in
-  double x = src[0];
-  double y = src[1];
+  // get the quadrant that xy is in
+  //
+  double x = xy[0];
+  double y = xy[1];
   double xc = center[0];
   double yc = center[1];
 
@@ -604,12 +584,9 @@ void quadtree_printbox(char *name, struct quadtree_box *box) {
   printf("level =       %d\n", box->level);
   printf("width =       %e\n", box->width);
   printf("center =      (%+e, %+e)\n", box->center[0], box->center[1]);
-  printf("nsrcs =       %d\n", box->nsrcs);
-  printf("srcs =        %p\n", box->srcs);
-  printf("src perm =    %p\n", box->ps);
-  printf("ntargs =      %d\n", box->ntargs);
-  printf("targs =       %p\n", box->targs);
-  printf("targ perm =   %p\n", box->pt);
+  printf("npts =        %d\n", box->npts);
+  printf("xys =         %p\n", box->xys);
+  printf("xys perm =    %p\n", box->perm);
   printf("parent =      %p\n", box->parent);
   printf("child[0] =    %p\n", box->child[0]);
   printf("child[1] =    %p\n", box->child[1]);
@@ -673,7 +650,7 @@ void quadtree_print_tree(int nboxes, struct quadtree_box *tree) {
   int i = 0;
   int ip, ic0, ic1, ic2, ic3;
 
-  printf("   id  level    width        center          nsrcs  ntargs parent   ch0   ch1   ch2   ch3\n");
+  printf("   id  level    width        center          npts   parent   ch0   ch1   ch2   ch3\n");
 
   for (i=0; i<nboxes; i++) {
 
@@ -688,9 +665,9 @@ void quadtree_print_tree(int nboxes, struct quadtree_box *tree) {
     if (tree[i].child[2] != NULL) ic2 = tree[i].child[2]->id;
     if (tree[i].child[3] != NULL) ic3 = tree[i].child[3]->id;
     
-    printf("%5d %5d  %8.2e (%+8.2e, %+8.2e) %6d %6d  %5d %5d %5d %5d %5d\n", tree[i].id,
+    printf("%5d %5d  %8.2e (%+8.2e, %+8.2e) %6d %5d %5d %5d %5d %5d\n", tree[i].id,
            tree[i].level,
-           tree[i].width, tree[i].center[0], tree[i].center[1], tree[i].nsrcs, tree[i].ntargs, 
+           tree[i].width, tree[i].center[0], tree[i].center[1], tree[i].npts,
            ip, ic0, ic1, ic2, ic3);
 
   }

@@ -13,22 +13,9 @@ struct quadtree_opts {
   int maxboxes;  
   int nmax;
   double maxwidth;
-  //double rmax;
 };
 
 
-
-
-
-struct quadtree_mpoles {
-  // struct to store multipole and local expansions for every node in
-  // the tree
-  int nterms;
-  int nd;
-  double sc;
-  double complex *mpole;
-  double complex *lpole;
-};
 
 
 
@@ -36,28 +23,21 @@ struct quadtree_box {
 
   int id;
   int level;
-  
   double center[2];
   double width;
-  //double r;
   
-  int nsrcs;
-  double *srcs;
-  int *ps;
+  int npts;
+  double *xys;
+  int *perm;
 
-  int ntargs;
-  double *targs;
-  int *pt;
-  
   struct quadtree_box *parent;
   struct quadtree_box *child[4];
-
-  struct quadtree_mpoles *fmm;
 };
 
 
 
 
+void quadtree_get_extent(int npts, double *xys, double *center, double *width);
 
 void quadtree_permute(int m, int n, int *p, double *xs);
 
@@ -75,12 +55,12 @@ void quadtree_getboxes_bylevel(int nboxes, struct quadtree_box *tree,
 void quadtree_getleafs(int nboxes, struct quadtree_box *tree, int *nleafs,
                      int *leafs);
 
-void quadtree_build(int m, double *targs, int *pt, int n, double *srcs, int *ps,
-                  struct quadtree_opts opts, int *nlev,
-                  int *nboxes, struct quadtree_box *tree);
+//void quadtree_build_old(int m, double *targs, int *pt, int n, double *srcs, int *ps,
+//                 struct quadtree_opts opts, int *nlev,
+//                  int *nboxes, struct quadtree_box *tree);
 
-void quadtree_build_up(double *center, double width, 
-                     int m, double *targs, int *pt, int n, double *srcs, int *ps,
+void quadtree_build(double *center, double width,
+                    int npts, double *xys, int *perm, 
                   struct quadtree_opts opts, int *nlev,
                   int *nboxes, struct quadtree_box *tree);
 

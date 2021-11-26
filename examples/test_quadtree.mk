@@ -8,7 +8,7 @@ ifeq ($(HOST),linux-gnu)
   FC = gfortran
   FFLAGS = -O2 -g -w -fallow-argument-mismatch
   CC = gcc
-  IDIRS = -I../../utils -I../src -I$(HOME)/.local/include
+  IDIRS = -I../include -I../src -I$(HOME)/.local/include
   CFLAGS = -std=c99 -Wall -O2 -funroll-loops -march=native
   LDFLAGS = -lopenblas -llapack -L$(HOME)/.local/lib
   LINK = gfortran -o $(PROJECT) 
