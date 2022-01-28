@@ -10,6 +10,10 @@
 #include "wrs2d.h"
 #include "kernels.h"
 
+// this testing code is for weak skeletonization in
+// two dimensions
+
+
 int main (int argc, char* argv[])
 {
                                                                                 

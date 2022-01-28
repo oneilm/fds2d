@@ -21,9 +21,27 @@ void wrs2d_factor(int nboxes, struct quadtree_box *tree,
 
   // this computes all the factors needed for a fds based on the info
   // in tree and the kernel above
+  //
+  // input:
+  //   nboxes -
+  //   tree -
+  //   diag -
+  //   kernel - 
+  //
+  // output:
+  //   factors -
+  //
+  
 
   int i, j, maxlevel;
   int *processed = malloc(nboxes*sizeof(int));
+
+  int isleaf, nproxy;
+  double center[2], width, radius;
+
+  nproxy = 20;
+  double *pxys = malloc(2*nproxy*sizeof(double));
+
 
   maxlevel = 0;
   for (i=0; i<nboxes; i++) {
@@ -45,9 +63,32 @@ void wrs2d_factor(int nboxes, struct quadtree_box *tree,
       
       // if ibox is a leaf, process now
       box = &tree[ibox];
-      ifproc = 0;
+      quadtree_isleaf(box, &isleaf);
 
+      if (isleaf == 1) {
+        cprinf("isleaf = ", &isleaf, 1);
 
+        // process this box
+        center[0] = box -> center[0];
+        center[1] = box -> center[1];
+        //cprind("box center = ", center, 2);
+        width = box -> width;
+        
+        radius = 2.5*width/2;
+        cprind("box width = ", &width, 1);
+        cprind("radius for proxy points = ", &radius, 1);
+
+        wrs2d_proxy(center, nproxy, radius, pxys);
+        cprind("proxy points = ", pxys, 2*nproxy);
+
+        
+
+        exit(0);
+      }
+          
+      
+      // get box info
+      
     }
 
     
