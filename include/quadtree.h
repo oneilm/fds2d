@@ -33,10 +33,17 @@ struct quadtree_box {
 
   struct quadtree_box *parent;
   struct quadtree_box *child[4];
+
+  int nnbors;
+  struct quadtree_box *nbors[8];
+  
 };
 
 
 
+
+
+void quadtree_findall_nbors(int nboxes, struct quadtree_box *tree);
 
 void quadtree_get_extent(int npts, double *xys, double *center, double *width);
 

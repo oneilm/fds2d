@@ -11,6 +11,40 @@
 
 
 
+
+void quadtree_findall_nbors(int nboxes, struct quadtree_box *tree) {
+
+  // This subroutine passes through the tree, from level 0 to the
+  // finest level, and generates lists of all neighbor boxes. A box is
+  // a neighbor of another box if ...
+  //
+  // 
+
+  int i, ibox;
+  int *ifproc = malloc(nboxes*sizeof(int));
+
+  for (i = 0; i < nboxes; i++) {
+    ifproc[i] = 0;
+  }
+
+  // box 0 has no neighbors
+  tree[0].nnbors = 0;
+  
+  
+  for (ibox = 0; ibox<nboxes; ibox++) {
+
+
+
+  }
+
+  
+  
+  return;
+}
+
+
+
+
 void quadtree_get_extent(int npts, double *xys, double *center, double *width) {
 
   // get the bounding box for the points in xys
@@ -307,25 +341,6 @@ void quadtree_build(double *center, double width,
     perm[i]=i;
   }
 
-
-  
-  //
-  // find the bounding box
-  //
-  /* double xmin, xmax, ymin, ymax, x, y; */
-  /* xmin = xys[0]; */
-  /* xmax = xys[0]; */
-  /* ymin = xys[1]; */
-  /* ymax = xys[1];; */
-  
-  /* for (i=0; i<npts; i++) { */
-  /*   x = xys[2*i]; */
-  /*   y = xys[2*i+1]; */
-  /*   if (x > xmax) xmax = x; */
-  /*   if (y > ymax) ymax = y; */
-  /*   if (x < xmin) xmin = x; */
-  /*   if (y < ymin) ymin = y; */
-  /* } */
 
   
   //

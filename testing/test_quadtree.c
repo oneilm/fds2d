@@ -17,8 +17,9 @@ int main (int argc, char* argv[])
 
   cprin_init("stdout","fort.13");  
   
-  int npts = 4000;
-  
+  int npts = 5000;
+  int nmax = 50;
+
   cprin_skipline(1);
   cprinf("npts = ", &npts, 1);
 
@@ -43,6 +44,23 @@ int main (int argc, char* argv[])
     //xys[2*i+1] = (xys[2*i+1]-.5)*2;
   }
 
+  // add some points to test level-restricted-ness
+  quadtree_rand(2*nmax, xys);
+  for (i=0; i<nmax; i++) {
+    xys[2*i] = -xys[2*i]*0.5;
+    xys[2*i+1] = xys[2*i+1]*0.5;
+  }
+
+  int nmax2 = 1000;
+  
+  quadtree_rand(2*nmax2, &(xys[2*nmax]));
+  for (i=0; i<nmax2; i++) {
+    xys[2*nmax + 2*i] = xys[2*nmax + 2*i]*0.5;
+    xys[2*nmax + 2*i+1] = xys[2*nmax + 2*i+1]*0.5;
+  }
+
+  
+  
 
   cprind("xys = ", xys, 20);
 
@@ -60,9 +78,9 @@ int main (int argc, char* argv[])
   //opts.maxlev = opts.maxlev + 2;
   //opts.maxlev = 4 + nfac;
 
-  opts.maxlev = 1;
+  opts.maxlev = 40;
   opts.maxboxes = maxboxes;  
-  opts.nmax = 50;
+  opts.nmax = nmax;
   opts.maxwidth = 10;
 
   cprinf("opts.maxlev = ", &opts.maxlev, 1);

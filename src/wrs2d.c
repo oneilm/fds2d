@@ -36,12 +36,13 @@ void wrs2d_factor(int nboxes, struct quadtree_box *tree,
   int i, j, maxlevel;
   int *processed = malloc(nboxes*sizeof(int));
 
-  int isleaf, nproxy;
+  int isleaf, nproxy, nsrc;
   double center[2], width, radius;
 
   nproxy = 20;
   double *pxys = malloc(2*nproxy*sizeof(double));
-
+  double *srcs;
+  
 
   maxlevel = 0;
   for (i=0; i<nboxes; i++) {
@@ -71,7 +72,7 @@ void wrs2d_factor(int nboxes, struct quadtree_box *tree,
         // process this box
         center[0] = box -> center[0];
         center[1] = box -> center[1];
-        //cprind("box center = ", center, 2);
+        cprind("box center = ", center, 2);
         width = box -> width;
         
         radius = 2.5*width/2;
@@ -81,7 +82,15 @@ void wrs2d_factor(int nboxes, struct quadtree_box *tree,
         wrs2d_proxy(center, nproxy, radius, pxys);
         cprind("proxy points = ", pxys, 2*nproxy);
 
-        
+        // collect sources in box and targets of neighbors
+        srcs = box -> xys;
+        nsrc = box -> npts;
+        cprind("sources in box = ", srcs, 2*nsrc);
+
+        // for now, built interaction matrix of srcs/proxy points and
+        // skeletonize
+        double *afb = malloc(nsrc*nproxy*sizeof(double));
+        wrs2d_buildmat(nsrc, srcs, nproxy, pxys, 
 
         exit(0);
       }
@@ -100,6 +109,7 @@ void wrs2d_factor(int nboxes, struct quadtree_box *tree,
   
   return;
 }
+
 
 
 
