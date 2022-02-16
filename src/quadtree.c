@@ -12,28 +12,44 @@
 
 
 
-void quadtree_findall_nbors(int nboxes, struct quadtree_box *tree) {
+void quadtree_findall_list1(int nboxes, struct quadtree_box *tree) {
 
-  // This subroutine passes through the tree, from level 0 to the
-  // finest level, and generates lists of all neighbor boxes. A box is
-  // a neighbor of another box if ...
+  // This subroutine passes through the tree and 
+  // generates lists of all boxes in list1. A box J is in list1 of a
+  // box I if it is adjacent.
   //
   // 
 
   int i, ibox;
-  int *ifproc = malloc(nboxes*sizeof(int));
+  //int *ifproc = malloc(nboxes*sizeof(int));
 
-  for (i = 0; i < nboxes; i++) {
-    ifproc[i] = 0;
-  }
+  //for (i = 0; i < nboxes; i++) {
+  //  ifproc[i] = 0;
+  //}
 
   // box 0 has no neighbors
-  tree[0].nnbors = 0;
+  //tree[0].nnbors = 0;
   
+  struct quadtree_box *parent;
+
+  if (nboxes == 0) return;
+
+  // initialize the parent box
+  ibox = 0;
+  tree[ibox].nlist1 = 0;
+
+  // generate lists for all other boxes
+
+  int j, nlp;
   
-  for (ibox = 0; ibox<nboxes; ibox++) {
+  for (ibox = 1; ibox<nboxes; ibox++) {
 
-
+    parent = tree[ibox].parent;
+    nlp = parent.nlist1;
+    
+    // scan through list1 of the parent
+    
+    ///for (j=0; j<
 
   }
 
@@ -261,19 +277,14 @@ void quadtree_restrict1(int *nlev, int *nboxes, struct quadtree_box *tree) {
 
     sc = .75*1.000001;
 
-    for (j = 0; j<*nboxes; j++) {
+    for (j = 0; j<nleafs; j++) {
 
-      if (tree[j].level == ilev+1) {
-        dx = abs(tree[j].center[0] - center[0]);
-        dy = abs(tree[j].center[1] - center[1]);
+      if (tree[leafs[j]].level > ilev+1) {
+        dx = abs(tree[leafs[j]].center[0] - center[0]);
+        dy = abs(tree[leafs[j]].center[1] - center[1]);
 
         if ((dx <= sc*width) && (dy <= sc*width)) {
-          // check to see if this box has children, if so, need to
-          // refine leafs[i]
-          if (tree[j].child[0] != NULL) ifsplit = 1;
-          if (tree[j].child[1] != NULL) ifsplit = 1;
-          if (tree[j].child[2] != NULL) ifsplit = 1;
-          if (tree[j].child[3] != NULL) ifsplit = 1;          
+          ifsplit = 1;
         }
       }
 
@@ -282,6 +293,7 @@ void quadtree_restrict1(int *nlev, int *nboxes, struct quadtree_box *tree) {
 
     if (ifsplit == 1) {
       quadtree_split(tree[leafs[i]].id, nboxes, tree);
+      return;
     }
     
   }
@@ -355,15 +367,8 @@ void quadtree_build(double *center, double width,
   
   tree[0].id = *nboxes;
   tree[0].level = 0;
-  //tree[0].center[0] = (xmin+xmax)/2;
-  //tree[0].center[1] = (ymin+ymax)/2;
   tree[0].center[0] = center[0];
   tree[0].center[1] = center[1];
-
-  //double w = (xmax-xmin);
-  //if ((ymax-ymin) > w) w = (ymax-ymin);
-  //w = w*(1.0 + 1.0e-8);
-  //tree[0].width = w;
   tree[0].width = width;
 
   tree[0].npts = npts;
@@ -375,7 +380,10 @@ void quadtree_build(double *center, double width,
   for (i=0; i<4; ++i) {
     tree[0].child[i] = NULL;
   }
-  
+
+  // set list1 for the root
+  tree[0].nlist1 = 0;
+
   *nboxes = 1;
   
   //
@@ -436,10 +444,6 @@ void quadtree_build(double *center, double width,
   }
 
   return;
-  
-  
-
-  
 
 }
 
@@ -618,7 +622,7 @@ void quadtree_split(int ibox, int *nboxes, struct quadtree_box *tree) {
         tree[nb].child[i] = NULL;
       }
       tree[ibox].child[j] = &(tree[nb]);
-      
+
       nb = nb+1;
       *nboxes = nb;
     }
