@@ -99,6 +99,7 @@ int main (int argc, char* argv[])
   quadtree_print_tree(nboxes, tree);
   quadtree_plotboxes("2dtree", nboxes, tree, "the 2d boxes");
 
+  exit(0);
 
   // now check that the list generation is working, generate list1 for
   // a box

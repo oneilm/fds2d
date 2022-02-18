@@ -34,9 +34,8 @@ struct quadtree_box {
   struct quadtree_box *parent;
   struct quadtree_box *child[4];
 
-  int maxlist = 50;
-  int nlist1;
-  struct quadtree_box *list1[maxlist];
+  int ncoll;
+  struct quadtree_box *colls[8];
   
 };
 

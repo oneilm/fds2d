@@ -36,7 +36,7 @@ void quadtree_findall_list1(int nboxes, struct quadtree_box *tree) {
 
   // initialize the parent box
   ibox = 0;
-  tree[ibox].nlist1 = 0;
+  //  tree[ibox].nlist1 = 0;
 
   // generate lists for all other boxes
 
@@ -45,7 +45,7 @@ void quadtree_findall_list1(int nboxes, struct quadtree_box *tree) {
   for (ibox = 1; ibox<nboxes; ibox++) {
 
     parent = tree[ibox].parent;
-    nlp = parent.nlist1;
+    //    nlp = parent.nlist1;
     
     // scan through list1 of the parent
     
@@ -382,7 +382,7 @@ void quadtree_build(double *center, double width,
   }
 
   // set list1 for the root
-  tree[0].nlist1 = 0;
+  tree[0].ncoll = 0;
 
   *nboxes = 1;
   
