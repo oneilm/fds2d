@@ -392,7 +392,7 @@ void quadtree_build(double *center, double width,
   int lev, ifsplit, ntemp, ifdone, nnn, ifchild;
 
   *nlev = 0;
-  int maxboxes;
+  int maxboxes, nboxes0, nnew;
   //int nmax;
 
   maxboxes = opts.maxboxes;
@@ -435,7 +435,17 @@ void quadtree_build(double *center, double width,
           exit(0);
         }
         ifdone = 0;
+        nboxes0 = *nboxes;
         quadtree_split(nnn, nboxes, tree);
+        nnew = *nboxes - nboxes0;
+
+        // for each new box, calculate colleagues
+        cprinf("num new boxes = ", &nnew, 1);
+
+        for (i=0; i<nnew; i++) {
+          quadtree_colleagues1( &tree[nboxes0+i] );
+        }
+        
       }
     }
 
@@ -445,6 +455,32 @@ void quadtree_build(double *center, double width,
 
   return;
 
+}
+
+
+
+
+
+void quadtree_colleagues1( struct quadtree_box *box ) {
+
+  // this routine finds the colleagues of box by searching through
+  // children of its parent and its parent's colleagues
+
+  struct quadtree_box *parent;
+  parent = box->parent;
+
+  box->ncoll = 0;
+  // add all 
+
+  cprinf("ncoll for parent = ", &(parent->ncoll), 1);
+
+       
+
+  exit(0);
+
+  
+  
+  return;
 }
 
 

@@ -42,6 +42,7 @@ struct quadtree_box {
 
 
 
+void quadtree_colleagues1( struct quadtree_box *box );
 
 void quadtree_findall_list1(int nboxes, struct quadtree_box *tree);
 
