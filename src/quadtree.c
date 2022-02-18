@@ -435,16 +435,16 @@ void quadtree_build(double *center, double width,
           exit(0);
         }
         ifdone = 0;
-        nboxes0 = *nboxes;
+        //nboxes0 = *nboxes;
         quadtree_split(nnn, nboxes, tree);
-        nnew = *nboxes - nboxes0;
+        //nnew = *nboxes - nboxes0;
 
         // for each new box, calculate colleagues
-        cprinf("num new boxes = ", &nnew, 1);
+        //cprinf("num new boxes = ", &nnew, 1);
 
-        for (i=0; i<nnew; i++) {
-          quadtree_colleagues1( &tree[nboxes0+i] );
-        }
+        //for (i=0; i<nnew; i++) {
+        //  quadtree_colleagues1( &tree[nboxes0+i] );
+        // }
         
       }
     }
@@ -476,7 +476,7 @@ void quadtree_colleagues1( struct quadtree_box *box ) {
 
        
 
-  exit(0);
+  //exit(0);
 
   
   
@@ -665,7 +665,6 @@ void quadtree_split(int ibox, int *nboxes, struct quadtree_box *tree) {
 
   }
 
-
   //
   // now collect all the points that are in each box, permuting them
   // as need be
@@ -687,6 +686,92 @@ void quadtree_split(int ibox, int *nboxes, struct quadtree_box *tree) {
   }
   
 
+  // generate a list of colleagues for each new box
+  // ... first add the siblings
+
+  struct quadtree_box *parent, *newbox, *sibling;
+  struct quadtree_box **pcolls, *child;
+  int npcoll;
+  int ncoll, k;
+  double width, *center;
+  
+  parent = &(tree[ibox]);
+  cprin_skipline(2);
+  cprinf("parent index, ibox = ", &ibox, 1);
+  cprind("parent center = ", parent->center, 2);
+
+  for (j=0; j<4; j++) {
+
+    newbox = parent->child[j];
+
+    ncoll = 0;
+    if (newbox != NULL) {
+      for (i=0; i<4; i++) {
+        sibling = parent->child[i];
+        if ( (i != j) && (sibling != NULL) ) {
+          newbox->colls[ncoll] = sibling;
+          ncoll = ncoll + 1;
+        }
+      }
+
+      cprin_skipline(2);
+      cprinf("number of colleagues from siblins, ncoll = ", &ncoll, 1);
+
+      // and now check children of the colleagues of the parent
+      if (parent->parent != NULL) {
+
+        npcoll = parent->ncoll;
+        pcolls = parent->colls;
+        cprinf("npcoll = ", &npcoll, 1);
+
+        width = newbox->width;
+        center = newbox->center;
+
+        cprind("center of newbox = ", center, 2);
+
+        ///// CHILD HASN"T BEEN CREATED YET!!!!
+        cprind("center of parent colleague 0 = ",
+               pcolls[0]->child[0]->center, 2);
+        exit(0);
+        ///// CHILD HASN"T BEEN CREATED YET!!!!
+        
+        for (i=0; i<npcoll; i++) {
+
+          // check each child of colleague i of the parent
+          for (k=0; k<4; k++){
+            if (pcolls[i]->child[k] != NULL) {
+              xc = pcolls[i]->child[k]->center[0];
+              yc = pcolls[i]->child[k]->center[1];
+              cprind("testing box with center = ",
+                     pcolls[i]->child[k]->center, 2);
+              if ( (abs(xc-center[0]) <= width*1.000001) &&
+                   (abs(yc-center[1]) <= width*1.000001) ) {
+                // store the colleague
+                newbox->colls[ncoll] = pcolls[i]->child[k];
+                ncoll = ncoll + 1;
+              }
+            }
+          }
+
+          
+        } 
+        // loop over i
+
+
+        cprinf("for newbox, ncoll = ", &ncoll, 1);
+      }
+      // if parent isn't NULL...
+
+
+      
+      newbox->ncoll = ncoll;
+      cprinf("for newbox, ncoll = ", &ncoll, 1);
+    }
+    
+  }
+
+
+  if (ibox == 1) exit(0);
   
   return;
 }

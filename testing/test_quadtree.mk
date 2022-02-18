@@ -1,7 +1,6 @@
 
 
 PROJECT = int2
-HOST = osx-gnu
 HOST = linux-gnu
 
 ifeq ($(HOST),linux-gnu)
@@ -14,15 +13,16 @@ ifeq ($(HOST),linux-gnu)
   LINK = gfortran -o $(PROJECT) 
 endif
 
-# ifeq ($(HOST),osx-gnu)
-#   FC = gfortran-10
-#   FFLAGS = -O2 -g -w -fallow-argument-mismatch
-#   CC = gcc-10
-#   IDIRS = -I../../utils -I../src -I$(FMM2D)/include -I/usr/local/include
-#   CFLAGS = -std=c99 -Wall -O2 -funroll-loops -march=native
-#   LDFLAGS = -framework Accelerate -L/usr/local/lib -lid
-#   LINK = gfortran-10 -o $(PROJECT) 
-# endif
+ifeq ($(HOST),osx-gnu)
+  FC = gfortran-11
+  FFLAGS = -O2 -g -w -fallow-argument-mismatch
+  CC = gcc-11
+  IDIRS = -I../include -I../src -I/usr/local/Cellar/openblas/0.3.18/include 
+  CFLAGS = -std=c99 -Wall -O2 -funroll-loops -march=native
+#  LDFLAGS = -framework Accelerate -L/usr/local/lib -lid
+  LDFLAGS = -L/usr/local/Cellar/openblas/0.3.18/lib -lopenblas -llapack
+  LINK = gfortran-11 -o $(PROJECT) 
+endif
 
 # ifeq ($(HOST),osx-intel)
 #   FC = ifort
