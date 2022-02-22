@@ -35,7 +35,9 @@ struct quadtree_box {
   struct quadtree_box *child[4];
 
   int ncoll;
-  struct quadtree_box *colls[8];
+  // Note: Allow for including YOURSELF as a colleague to simplify processing
+  // later on
+  struct quadtree_box *colls[9];
   
 };
 

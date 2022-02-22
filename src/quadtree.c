@@ -343,6 +343,9 @@ void quadtree_build(double *center, double width,
   // is pruned and fully adaptive.
   //
   //     Input:
+  //        center - 
+  //        width - 
+  //        npts - 
   //
   //     Output:
   //
@@ -453,6 +456,28 @@ void quadtree_build(double *center, double width,
     *nlev = *nlev+1;
   }
 
+
+  // now scan through all the boxes, level by level, and find the colleagues of
+  // all possible boxes
+  int ibox;
+  for (lev=0; lev<3; lev++) {
+
+    cprinf("computing colleagues for level lev = ", &lev, 1);
+
+    for (ibox=0; ibox<*nboxes; ibox++) {
+      
+      if (tree[ibox].level == lev) {
+        quadtree_colleagues1( &tree[ibox] );
+
+      }
+
+
+    }
+
+  }
+
+  exit(0);
+
   return;
 
 }
@@ -463,18 +488,71 @@ void quadtree_build(double *center, double width,
 
 void quadtree_colleagues1( struct quadtree_box *box ) {
 
-  // this routine finds the colleagues of box by searching through
-  // children of its parent and its parent's colleagues
+  // This routine finds the colleagues of box by searching through children of
+  // its parent and its parent's colleagues. The box struct is updated directly.
+  //
+  // Input:
+  //   box - the box whose colleagues should be calculated
+  //
 
+  // initialize all colleagues back to zero
+  box->ncoll = 0;
+  int i;
+  for (i=0; i<9; i++) {
+    box->colls[i] = NULL;
+  }
+
+  
+  // If the box is the root box, just set its colleagues to itself
+  if (box->level == 0) {
+    box->ncoll = 1;
+    box->colls[0] = box;
+    return;
+  }
+
+  // Otherwise search through children of the parent's colleages
   struct quadtree_box *parent;
   parent = box->parent;
 
-  box->ncoll = 0;
-  // add all 
+  // scan through colleagues of parent and add children that are within a
+  // certain distance
 
-  cprinf("ncoll for parent = ", &(parent->ncoll), 1);
+  int ncoll, npcoll;
+  ncoll = 0;
+  npcoll = parent->ncoll;
+  
+  int j;
+  double center[2], dx, dy, width;
+  center[0] = box->center[0];
+  center[1] = box->center[1];
+  width = box->width;
 
-       
+  struct quadtree_box *pcoll, *pch;
+  for (i=0; i<npcoll; i++) {
+
+    pcoll = parent->colls[i];
+    // scan through children of pcoll
+    for (j=0; j<4; j++) {
+      pch = pcoll->child[j];
+      if (pch != NULL) {
+        dx = pch->center[0] - center[0];
+        dy = pch->center[1] - center[1];
+        if ( (abs(dx) < width*1.000001) && 
+             (abs(dy) < width*1.000001) ) {
+               // store pch as a colleague
+               box->colls[ncoll] = pch;
+               ncoll = ncoll + 1;
+        }
+      }
+
+    }
+
+  }
+
+  // print out the colleague centers for the box
+  box->ncoll = ncoll;
+
+  cprinf("ncoll for this box = ", &ncoll, 1);
 
   //exit(0);
 
@@ -685,6 +763,9 @@ void quadtree_split(int ibox, int *nboxes, struct quadtree_box *tree) {
     
   }
   
+  return;
+
+
 
   // generate a list of colleagues for each new box
   // ... first add the siblings
