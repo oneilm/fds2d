@@ -97,27 +97,31 @@ int main (int argc, char* argv[])
   quadtree_get_extent(npts, xys, center, &width);
   quadtree_build(center, width, npts, xys, perm, opts, &nlev, &nboxes, tree);
   quadtree_print_tree(nboxes, tree);
-  quadtree_plotboxes("2dtree", nboxes, tree, "the 2d boxes");
+  quadtree_plotboxes("2dtree", nboxes, tree, "Fully adaptive boxes");
+  quadtree_plotleaves("2dtree_leaves", nboxes, tree, "Fully adaptive leaves");
+
+
+
+  // now fix up the tree into one that is level-restricted
+  quadtee_fixtree_lr(&nlev, &nboxes, tree);
+  quadtree_print_tree(nboxes, tree);  
+  quadtree_plotboxes("2dtree_lr", nboxes, tree, "LR boxes");
+  quadtree_plotleaves("2dtree_leaves_lr", nboxes, tree, "LR leaves");
 
   exit(0);
 
   // now check that the list generation is working, generate list1 for
   // a box
-  int nprev;
-  for (i=0; i<100; i++) {
-    cprinf("fixing tree, iteration i = ", &i, 1);
-    nprev = nboxes;
-    cprinf("before quadtree_restrict1, nboxes = ", &nprev, 1);
-    quadtree_restrict1(&nlev, &nboxes, tree);
-    cprinf("after quadtree_restrict1, nboxes = ", &nboxes, 1);
-    if (nprev == nboxes) break;
-    cprin_skipline(1);
-  }
+  int nlist1, ibox;
+  ibox = 218;
+  struct quadtree_box *list1[1000];
+  quadtree_get_list1(&tree[ibox], nlist1, list1);
 
-  quadtree_print_tree(nboxes, tree);  
-  quadtree_plotboxes("2dtree_lr", nboxes, tree, "the level restricted 2d boxes");
-  
-  
+  exit(0);
+
+
+
+
 
   return 0;
 }

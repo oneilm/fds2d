@@ -12,52 +12,32 @@
 
 
 
-
-void quadtree_findall_list1(int nboxes, struct quadtree_box *tree) {
-
-  // This subroutine passes through the tree and 
-  // generates lists of all boxes in list1. A box J is in list1 of a
-  // box I if it is adjacent.
+void quadtree_get_list1(struct quadtree_box *box, int nlist1,
+    struct quadtree_box *list1) {
   //
-  // 
+  // This routine computes, on the fly, LIST1 for a box which is defined to be
+  // the self box, plus all adjacent neighbors. IT IS ASSUMED that the tree
+  // in which box resides is a level-restricted one, meaning that adjacent leaf
+  // boxes are only up or down one level at most.
+  //
 
-  int i, ibox;
-  //int *ifproc = malloc(nboxes*sizeof(int));
+  // get colleague info for box
+  int i, ncoll;
+  struct quadtree_box *coll;
+  double width;
 
-  //for (i = 0; i < nboxes; i++) {
-  //  ifproc[i] = 0;
-  //}
+  ncoll = box->ncoll;
+  for (i=0; i<ncoll; i++) {
 
-  // box 0 has no neighbors
-  //tree[0].nnbors = 0;
-  
-  struct quadtree_box *parent;
+    coll = box->colls[i];
+    // search inside this box for any adjacent leaf boxes
 
-  if (nboxes == 0) return;
-
-  // initialize the parent box
-  ibox = 0;
-  //  tree[ibox].nlist1 = 0;
-
-  // generate lists for all other boxes
-
-  int j, nlp;
-  
-  for (ibox = 1; ibox<nboxes; ibox++) {
-
-    parent = tree[ibox].parent;
-    //    nlp = parent.nlist1;
-    
-    // scan through list1 of the parent
-    
-    ///for (j=0; j<
 
   }
 
-  
-  
   return;
 }
+
 
 
 
@@ -270,25 +250,22 @@ void quadtree_restrict1(int *nlev, int *nboxes, struct quadtree_box *tree) {
   for (i=0; i<nleafs; i++) {
 
     ifsplit = 0;
-
     ilev = tree[leafs[i]].level;
     center[0] = tree[leafs[i]].center[0];
     center[1] = tree[leafs[i]].center[1];
     width = tree[leafs[i]].width;
 
-    sc = .75*1.000001;
-
+    sc = .75*0.999999;
     for (j = 0; j<nleafs; j++) {
 
       if (tree[leafs[j]].level > ilev+1) {
         dx = fabs(tree[leafs[j]].center[0] - center[0]);
         dy = fabs(tree[leafs[j]].center[1] - center[1]);
 
-        if ((dx <= sc*width) && (dy <= sc*width)) {
+        if ((dx < sc*width) && (dy < sc*width)) {
           ifsplit = 1;
         }
       }
-
       if (ifsplit == 1) break;
     }
 
@@ -302,6 +279,35 @@ void quadtree_restrict1(int *nlev, int *nboxes, struct quadtree_box *tree) {
   return;
 }
 
+
+
+
+
+void quadtee_fixtree_lr(int *nlev, int *nboxes, struct quadtree_box *tree) {
+  //
+  // This routine takes an arbitrarily adaptive tree and fixes it so that it is
+  // level-restricted.
+  //
+
+  int i, nprev, nnew;
+  for (i=0; i<1000; i++) {
+    cprinf("fixing tree, iteration i = ", &i, 1);
+    nprev = *nboxes;
+    //cprinf("before quadtree_restrict1, nboxes = ", &nprev, 1);
+    quadtree_restrict1(nlev, nboxes, tree);
+    //cprinf("after quadtree_restrict1, nboxes = ", &nboxes, 1);
+    nnew = *nboxes - nprev;
+    cprinf("new boxes created = ", &nnew, 1);
+    if (nnew == 0) break;
+    cprin_skipline(1);
+  }
+
+
+
+
+  return;
+
+}
 
 
 
@@ -453,7 +459,7 @@ void quadtree_build(double *center, double width,
 
 
 
-  cprinf("nlev = ", nlev, 1);
+  //cprinf("nlev = ", nlev, 1);
 
   // now scan through all the boxes, level by level, and find the colleagues of
   // all possible boxes
@@ -479,10 +485,6 @@ void quadtree_build(double *center, double width,
     quadtree_plotcolleagues(buffer, *nboxes, tree,
         &(tree[ibox]), "Example colleague plot");
   }
-
-
-
-  exit(0);
 
   return;
 
@@ -510,71 +512,6 @@ void quadtree_colleagues1( struct quadtree_box *box ) {
   double center[2], dx, dy, width;
   double fac;
 
-  // id = box->id;
-  // if (id == 18) {
-  //   cprinf("processing box id = ", &id, 1);
-  //   box->ncoll = 0;
-  //   for (i=0; i<9; i++) {
-  //     box->colls[i] = NULL;
-  //   }
-
-  //   ncoll = 0;
-  //   center[0] = box->center[0];
-  //   center[1] = box->center[1];
-  //   width = box->width;
-
-  //   cprind("center = ", center, 2);
-  //   cprind("width = ", &width, 1);
-
-  //   parent = box->parent;
-  //   npcoll = parent->ncoll;
-
-  //   cprinf("parent id = ", &(parent->id), 1);
-  //   cprinf("parent npcoll = ", &npcoll, 1);
-
-  //   for (i=0; i<npcoll; i++) {
-
-  //     pcoll = parent->colls[i];
-  //     cprin_skipline(1);
-  //     cprinf("processing parent colleague id = ", &(pcoll->id), 1);
-  //     // scan through children of pcoll
-  //     for (j=0; j<4; j++) {
-  //       pch = pcoll->child[j];
-  //       if (pch != NULL) {
-  //         cprin_skipline(1);
-  //         cprinf("found child, id = ", &(pch->id), 1);
-  //         dx = pch->center[0] - center[0];
-  //         dy = pch->center[1] - center[1];
-  //         cprind("dx = ", &dx, 1);
-  //         cprind("dy = ", &dy, 1);
-          
-  //         fac = width*1.000001;
-  //         cprind("fac = ", &fac, 1);
-  //         if ( (fabs(dx) < fac) && (fabs(dy) < fac) ) {
-  //           // store pch as a colleague
-  //           cprin_message("- - STORING AS COLLEAGUE - -");
-  //           box->colls[ncoll] = pch;
-  //           ncoll = ncoll + 1;
-  //         }
-  //       }
-
-  //     }
-
-  // }
-
-  // // print out the colleague centers for the box
-  // box->ncoll = ncoll;
-
-  // printf("id = %d, ncoll = %d\n", box->id, ncoll);
-
-
-  //   exit(0);
-
-  //   return;
-  // }
-
-
-
   // initialize all colleagues back to zero
   box->ncoll = 0;
   for (i=0; i<9; i++) {
@@ -594,7 +531,6 @@ void quadtree_colleagues1( struct quadtree_box *box ) {
 
   // scan through colleagues of parent and add children that are within a
   // certain distance
-
 
   ncoll = 0;
   npcoll = parent->ncoll;
@@ -773,6 +709,78 @@ void quadtree_plotboxes(char *filename, int nboxes, struct quadtree_box *tree,
   double xc, yc, w;
   for (i=0; i<nboxes; i++) {
   //for (i=0; i<5; i++) {
+    w = tree[i].width;
+    xc = tree[i].center[0] - w/2;
+    yc = tree[i].center[1] - w/2;
+    fprintf(fp, "\n");
+    fprintf(fp, "rect = mpl.patches.Rectangle([%e,%e], %e, %e)\n", xc, yc, w, w);
+    fprintf(fp, "patches.append(rect)\n");
+  }
+
+  fprintf(fp, "print('. . . plotting boxes')\n");  
+  fprintf(fp, "collection = mpl.collections.PatchCollection(patches, alpha=0.2, facecolor='grey', edgecolor='black')\n");
+  fprintf(fp, "ax.add_collection(collection)\n");
+
+
+  // plot the sources now
+  int npts = tree[0].npts;
+  double *xys = tree[0].xys;
+
+  fprintf(fp, "print('. . . plotting sources')\n");
+  fprintf(fp, "xs = np.zeros(%d)\n", npts);
+  fprintf(fp, "ys = np.zeros(%d)\n", npts);
+
+  for (i=0; i<npts; i++) {
+    fprintf(fp, "xs[%d] = %e\n", i, xys[2*i]);
+  }
+
+  for (i=0; i<npts; i++) {
+    fprintf(fp, "ys[%d] = %e\n", i, xys[2*i+1]);
+  }
+
+  fprintf(fp, "plt.scatter(xs, ys, s=5, c='blue', alpha=0.4)\n");
+
+  fprintf(fp, "plt.axis('equal')\n");
+  fprintf(fp, "plt.axis('on')\n");
+  fprintf(fp, "plt.tight_layout()\n");
+  fprintf(fp, "print('. . . showing plot')\n");  
+  fprintf(fp, "plt.show()\n");
+
+  fclose(fp);
+
+  return;
+}
+
+
+
+
+void quadtree_plotleaves(char *filename, int nboxes, struct quadtree_box *tree,
+                      char *title) {
+  //
+  // plot all the LEAF boxes and points
+  //
+  char buffer[100];
+  FILE *fp;
+
+  strcpy(buffer, filename);
+  strcat(buffer, ".py");
+  fp = fopen(buffer, "w");
+
+  
+  fprintf(fp, "import matplotlib.pyplot as plt\n");
+  fprintf(fp, "import numpy as np\n");
+  fprintf(fp, "import matplotlib as mpl\n");
+  fprintf(fp, "\n");
+  fprintf(fp, "fig, ax = plt.subplots()\n");
+  fprintf(fp, "patches = []\n");
+  
+  fprintf(fp, "print('. . . constructing boxes')\n");  
+
+  int i, isleaf;
+  double xc, yc, w;
+  for (i=0; i<nboxes; i++) {
+    quadtree_isleaf(&tree[i], &isleaf);
+    if (isleaf == 0) continue;
     w = tree[i].width;
     xc = tree[i].center[0] - w/2;
     yc = tree[i].center[1] - w/2;
