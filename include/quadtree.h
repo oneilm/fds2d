@@ -42,7 +42,8 @@ struct quadtree_box {
 };
 
 
-
+void quadtree_plotcolleagues(char *filename, int nboxes,
+    struct quadtree_box *tree, struct quadtree_box *box, char *title);
 
 void quadtree_colleagues1( struct quadtree_box *box );
 

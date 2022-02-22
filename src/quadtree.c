@@ -1,6 +1,7 @@
 
 
 #include <stdlib.h>
+#include <math.h>
 #include <string.h>
 #include <stdio.h>
 
@@ -280,8 +281,8 @@ void quadtree_restrict1(int *nlev, int *nboxes, struct quadtree_box *tree) {
     for (j = 0; j<nleafs; j++) {
 
       if (tree[leafs[j]].level > ilev+1) {
-        dx = abs(tree[leafs[j]].center[0] - center[0]);
-        dy = abs(tree[leafs[j]].center[1] - center[1]);
+        dx = fabs(tree[leafs[j]].center[0] - center[0]);
+        dy = fabs(tree[leafs[j]].center[1] - center[1]);
 
         if ((dx <= sc*width) && (dy <= sc*width)) {
           ifsplit = 1;
@@ -439,16 +440,7 @@ void quadtree_build(double *center, double width,
         }
         ifdone = 0;
         //nboxes0 = *nboxes;
-        quadtree_split(nnn, nboxes, tree);
-        //nnew = *nboxes - nboxes0;
-
-        // for each new box, calculate colleagues
-        //cprinf("num new boxes = ", &nnew, 1);
-
-        //for (i=0; i<nnew; i++) {
-        //  quadtree_colleagues1( &tree[nboxes0+i] );
-        // }
-        
+        quadtree_split(nnn, nboxes, tree);        
       }
     }
 
@@ -456,25 +448,39 @@ void quadtree_build(double *center, double width,
     *nlev = *nlev+1;
   }
 
+  // print out the tree info
+  quadtree_print_tree(*nboxes, tree);
+
+
+
+  cprinf("nlev = ", nlev, 1);
 
   // now scan through all the boxes, level by level, and find the colleagues of
   // all possible boxes
   int ibox;
-  for (lev=0; lev<3; lev++) {
-
+  for (lev=0; lev < *nlev+1; lev++) {
+    cprin_skipline(2);
     cprinf("computing colleagues for level lev = ", &lev, 1);
-
     for (ibox=0; ibox<*nboxes; ibox++) {
-      
       if (tree[ibox].level == lev) {
+        //cprinf("finding colleagues for ibox = ", &ibox, 1);
         quadtree_colleagues1( &tree[ibox] );
-
       }
-
-
     }
-
   }
+
+  // plot the colleagues of a particular box
+  char buffer[100], snum[10];
+  for (ibox = 0; ibox<*nboxes; ibox ++){ 
+    strcpy(buffer, "colltest_");
+    strcpy(snum, "");
+    sprintf(snum, "%d", ibox);
+    strcat(buffer, snum);
+    quadtree_plotcolleagues(buffer, *nboxes, tree,
+        &(tree[ibox]), "Example colleague plot");
+  }
+
+
 
   exit(0);
 
@@ -495,14 +501,87 @@ void quadtree_colleagues1( struct quadtree_box *box ) {
   //   box - the box whose colleagues should be calculated
   //
 
+
+  int id, i;
+  struct quadtree_box *parent;
+  struct quadtree_box *pcoll, *pch;
+  int ncoll, npcoll;
+  int j;
+  double center[2], dx, dy, width;
+  double fac;
+
+  // id = box->id;
+  // if (id == 18) {
+  //   cprinf("processing box id = ", &id, 1);
+  //   box->ncoll = 0;
+  //   for (i=0; i<9; i++) {
+  //     box->colls[i] = NULL;
+  //   }
+
+  //   ncoll = 0;
+  //   center[0] = box->center[0];
+  //   center[1] = box->center[1];
+  //   width = box->width;
+
+  //   cprind("center = ", center, 2);
+  //   cprind("width = ", &width, 1);
+
+  //   parent = box->parent;
+  //   npcoll = parent->ncoll;
+
+  //   cprinf("parent id = ", &(parent->id), 1);
+  //   cprinf("parent npcoll = ", &npcoll, 1);
+
+  //   for (i=0; i<npcoll; i++) {
+
+  //     pcoll = parent->colls[i];
+  //     cprin_skipline(1);
+  //     cprinf("processing parent colleague id = ", &(pcoll->id), 1);
+  //     // scan through children of pcoll
+  //     for (j=0; j<4; j++) {
+  //       pch = pcoll->child[j];
+  //       if (pch != NULL) {
+  //         cprin_skipline(1);
+  //         cprinf("found child, id = ", &(pch->id), 1);
+  //         dx = pch->center[0] - center[0];
+  //         dy = pch->center[1] - center[1];
+  //         cprind("dx = ", &dx, 1);
+  //         cprind("dy = ", &dy, 1);
+          
+  //         fac = width*1.000001;
+  //         cprind("fac = ", &fac, 1);
+  //         if ( (fabs(dx) < fac) && (fabs(dy) < fac) ) {
+  //           // store pch as a colleague
+  //           cprin_message("- - STORING AS COLLEAGUE - -");
+  //           box->colls[ncoll] = pch;
+  //           ncoll = ncoll + 1;
+  //         }
+  //       }
+
+  //     }
+
+  // }
+
+  // // print out the colleague centers for the box
+  // box->ncoll = ncoll;
+
+  // printf("id = %d, ncoll = %d\n", box->id, ncoll);
+
+
+  //   exit(0);
+
+  //   return;
+  // }
+
+
+
   // initialize all colleagues back to zero
   box->ncoll = 0;
-  int i;
   for (i=0; i<9; i++) {
     box->colls[i] = NULL;
   }
 
-  
+
   // If the box is the root box, just set its colleagues to itself
   if (box->level == 0) {
     box->ncoll = 1;
@@ -511,23 +590,18 @@ void quadtree_colleagues1( struct quadtree_box *box ) {
   }
 
   // Otherwise search through children of the parent's colleages
-  struct quadtree_box *parent;
   parent = box->parent;
 
   // scan through colleagues of parent and add children that are within a
   // certain distance
 
-  int ncoll, npcoll;
+
   ncoll = 0;
   npcoll = parent->ncoll;
-  
-  int j;
-  double center[2], dx, dy, width;
   center[0] = box->center[0];
   center[1] = box->center[1];
   width = box->width;
 
-  struct quadtree_box *pcoll, *pch;
   for (i=0; i<npcoll; i++) {
 
     pcoll = parent->colls[i];
@@ -537,8 +611,7 @@ void quadtree_colleagues1( struct quadtree_box *box ) {
       if (pch != NULL) {
         dx = pch->center[0] - center[0];
         dy = pch->center[1] - center[1];
-        if ( (abs(dx) < width*1.000001) && 
-             (abs(dy) < width*1.000001) ) {
+        if ( (fabs(dx) < width*1.000001) && (fabs(dy) < width*1.000001) ) {
                // store pch as a colleague
                box->colls[ncoll] = pch;
                ncoll = ncoll + 1;
@@ -552,7 +625,9 @@ void quadtree_colleagues1( struct quadtree_box *box ) {
   // print out the colleague centers for the box
   box->ncoll = ncoll;
 
-  cprinf("ncoll for this box = ", &ncoll, 1);
+  printf("id = %d, ncoll = %d\n", box->id, ncoll);
+  //cprinf("box id = ", &(box->id), 1);
+  //cprinf("ncoll for this box = ", &ncoll, 1);
 
   //exit(0);
 
@@ -566,7 +641,106 @@ void quadtree_colleagues1( struct quadtree_box *box ) {
 
 
 
+void quadtree_plotcolleagues(char *filename, int nboxes,
+    struct quadtree_box *tree, struct quadtree_box *box, char *title) {
+  //
+  // plot all the boxes and points
+  //
+  char buffer[100];
+  FILE *fp;
 
+  strcpy(buffer, filename);
+  strcat(buffer, ".py");
+  fp = fopen(buffer, "w");
+
+  
+  fprintf(fp, "import matplotlib.pyplot as plt\n");
+  fprintf(fp, "import numpy as np\n");
+  fprintf(fp, "import matplotlib as mpl\n");
+  fprintf(fp, "\n");
+  fprintf(fp, "fig, ax = plt.subplots()\n");
+  fprintf(fp, "patches = []\n");
+  
+  fprintf(fp, "print('. . . constructing boxes')\n");  
+
+  int i;
+  double xc, yc, w;
+  for (i=0; i<nboxes; i++) {
+  //for (i=0; i<5; i++) {
+    w = tree[i].width;
+    xc = tree[i].center[0] - w/2;
+    yc = tree[i].center[1] - w/2;
+    fprintf(fp, "\n");
+    fprintf(fp, "rect = mpl.patches.Rectangle([%e,%e], %e, %e)\n", xc, yc, w, w);
+    fprintf(fp, "patches.append(rect)\n");
+  }
+
+  fprintf(fp, "print('. . . plotting boxes')\n");  
+  fprintf(fp, "collection = mpl.collections.PatchCollection(patches, alpha=0.2, facecolor='grey', edgecolor='black')\n");
+  fprintf(fp, "ax.add_collection(collection)\n");
+
+
+  // plot the colleagues of box now
+  fprintf(fp, "patches = []\n");
+
+  int ncoll;
+  ncoll = box->ncoll;
+  for (i=0; i<ncoll; i++) {
+    w = box->colls[i]->width;
+    xc = box->colls[i]->center[0] - w/2;
+    yc = box->colls[i]->center[1] - w/2;
+    fprintf(fp, "\n");
+    fprintf(fp, "rect = mpl.patches.Rectangle([%e,%e], %e, %e)\n", xc, yc, w, w);
+    fprintf(fp, "patches.append(rect)\n");
+  }
+  fprintf(fp, "print('. . . highlighting colleagues')\n");  
+  fprintf(fp, "collection = mpl.collections.PatchCollection(patches, alpha=0.2, facecolor='red', edgecolor='black')\n");
+  fprintf(fp, "ax.add_collection(collection)\n");
+
+  // highlight the self block
+  fprintf(fp, "\n");
+  fprintf(fp, "patches = []\n");
+  w = box->width;
+  xc = box->center[0] - w/2;
+  yc = box->center[1] - w/2;
+  fprintf(fp, "rect = mpl.patches.Rectangle([%e,%e], %e, %e)\n", xc, yc, w, w);
+  fprintf(fp, "patches.append(rect)\n");
+  fprintf(fp, "collection = mpl.collections.PatchCollection(patches, alpha=0.6, facecolor='red', edgecolor='black')\n");
+  fprintf(fp, "ax.add_collection(collection)\n");
+
+
+
+  // plot the sources now
+  int npts = tree[0].npts;
+  double *xys = tree[0].xys;
+
+  fprintf(fp, "print('. . . plotting sources')\n");
+  fprintf(fp, "xs = np.zeros(%d)\n", npts);
+  fprintf(fp, "ys = np.zeros(%d)\n", npts);
+
+  for (i=0; i<npts; i++) {
+    fprintf(fp, "xs[%d] = %e\n", i, xys[2*i]);
+  }
+
+  for (i=0; i<npts; i++) {
+    fprintf(fp, "ys[%d] = %e\n", i, xys[2*i+1]);
+  }
+
+  fprintf(fp, "plt.scatter(xs, ys, s=5, c='blue', alpha=0.4)\n");
+
+  fprintf(fp, "plt.axis('equal')\n");
+  fprintf(fp, "plt.axis('on')\n");
+  fprintf(fp, "plt.tight_layout()\n");
+  fprintf(fp, "print('. . . showing plot')\n");  
+  fprintf(fp, "plt.show()\n");
+
+
+
+
+  fclose(fp);
+
+  return;
+}
 
 
 
@@ -762,97 +936,6 @@ void quadtree_split(int ibox, int *nboxes, struct quadtree_box *tree) {
     }
     
   }
-  
-  return;
-
-
-
-  // generate a list of colleagues for each new box
-  // ... first add the siblings
-
-  struct quadtree_box *parent, *newbox, *sibling;
-  struct quadtree_box **pcolls, *child;
-  int npcoll;
-  int ncoll, k;
-  double width, *center;
-  
-  parent = &(tree[ibox]);
-  cprin_skipline(2);
-  cprinf("parent index, ibox = ", &ibox, 1);
-  cprind("parent center = ", parent->center, 2);
-
-  for (j=0; j<4; j++) {
-
-    newbox = parent->child[j];
-
-    ncoll = 0;
-    if (newbox != NULL) {
-      for (i=0; i<4; i++) {
-        sibling = parent->child[i];
-        if ( (i != j) && (sibling != NULL) ) {
-          newbox->colls[ncoll] = sibling;
-          ncoll = ncoll + 1;
-        }
-      }
-
-      cprin_skipline(2);
-      cprinf("number of colleagues from siblins, ncoll = ", &ncoll, 1);
-
-      // and now check children of the colleagues of the parent
-      if (parent->parent != NULL) {
-
-        npcoll = parent->ncoll;
-        pcolls = parent->colls;
-        cprinf("npcoll = ", &npcoll, 1);
-
-        width = newbox->width;
-        center = newbox->center;
-
-        cprind("center of newbox = ", center, 2);
-
-        ///// CHILD HASN"T BEEN CREATED YET!!!!
-        cprind("center of parent colleague 0 = ",
-               pcolls[0]->child[0]->center, 2);
-        exit(0);
-        ///// CHILD HASN"T BEEN CREATED YET!!!!
-        
-        for (i=0; i<npcoll; i++) {
-
-          // check each child of colleague i of the parent
-          for (k=0; k<4; k++){
-            if (pcolls[i]->child[k] != NULL) {
-              xc = pcolls[i]->child[k]->center[0];
-              yc = pcolls[i]->child[k]->center[1];
-              cprind("testing box with center = ",
-                     pcolls[i]->child[k]->center, 2);
-              if ( (abs(xc-center[0]) <= width*1.000001) &&
-                   (abs(yc-center[1]) <= width*1.000001) ) {
-                // store the colleague
-                newbox->colls[ncoll] = pcolls[i]->child[k];
-                ncoll = ncoll + 1;
-              }
-            }
-          }
-
-          
-        } 
-        // loop over i
-
-
-        cprinf("for newbox, ncoll = ", &ncoll, 1);
-      }
-      // if parent isn't NULL...
-
-
-      
-      newbox->ncoll = ncoll;
-      cprinf("for newbox, ncoll = ", &ncoll, 1);
-    }
-    
-  }
-
-
-  if (ibox == 1) exit(0);
   
   return;
 }
