@@ -42,6 +42,9 @@ struct quadtree_box {
 };
 
 
+void quadtree_get_list1(struct quadtree_box *box, int *nlist1,
+    struct quadtree_box *list1);
+
 void quadtee_fixtree_lr(int *nlev, int *nboxes, struct quadtree_box *tree);
 
 void quadtree_plotleaves(char *filename, int nboxes, struct quadtree_box *tree,
@@ -49,6 +52,8 @@ void quadtree_plotleaves(char *filename, int nboxes, struct quadtree_box *tree,
 
 void quadtree_plotcolleagues(char *filename, int nboxes,
     struct quadtree_box *tree, struct quadtree_box *box, char *title);
+
+void quadtree_gen_colleagues(int nlev, int nboxes, struct quadtree_box *tree);
 
 void quadtree_colleagues1( struct quadtree_box *box );
 

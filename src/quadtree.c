@@ -12,7 +12,7 @@
 
 
 
-void quadtree_get_list1(struct quadtree_box *box, int nlist1,
+void quadtree_get_list1(struct quadtree_box *box, int *nlist1,
     struct quadtree_box *list1) {
   //
   // This routine computes, on the fly, LIST1 for a box which is defined to be
@@ -21,16 +21,28 @@ void quadtree_get_list1(struct quadtree_box *box, int nlist1,
   // boxes are only up or down one level at most.
   //
 
+  // initialize
+  *nlist1 = 0;
+  int isleaf;
+  quadtree_isleaf(box, isleaf);
+  if (isleaf == 1) return;
+
   // get colleague info for box
   int i, ncoll;
   struct quadtree_box *coll;
   double width;
 
+  width = box->width;
   ncoll = box->ncoll;
   for (i=0; i<ncoll; i++) {
 
     coll = box->colls[i];
-    // search inside this box for any adjacent leaf boxes
+    
+    // if the colleage is a leaf, it is in list 1
+    quadtree_isleaf(coll, isleaf);
+    if (isleaf == 1) {
+      //list1[0] = 
+    }
 
 
   }
@@ -344,10 +356,9 @@ void quadtree_build(double *center, double width,
                     int npts, double *xys, int *perm, 
                   struct quadtree_opts opts, int *nlev,
                     int *nboxes, struct quadtree_box *tree) {
-
-  // This routine builds a stadard quadtree on the points xys, and
-  // will originally be used for a basic fast direct solver. The tree
-  // is pruned and fully adaptive.
+  //
+  // This routine builds an UNPRUNED space-filling fully adaptive quadtree on
+  // the points xys, and will initially be used for a basic fast direct solver.
   //
   //     Input:
   //        center - 
@@ -402,14 +413,8 @@ void quadtree_build(double *center, double width,
   int lev, ifsplit, ntemp, ifdone, nnn, ifchild;
 
   *nlev = 0;
-  int maxboxes, nboxes0, nnew;
-  //int nmax;
-
+  int maxboxes;
   maxboxes = opts.maxboxes;
-  //nmax = opts.nmax;
-
-
-  
   
   for (lev=0; lev<opts.maxlev; lev++) {
 
@@ -445,7 +450,6 @@ void quadtree_build(double *center, double width,
           exit(0);
         }
         ifdone = 0;
-        //nboxes0 = *nboxes;
         quadtree_split(nnn, nboxes, tree);        
       }
     }
@@ -463,20 +467,11 @@ void quadtree_build(double *center, double width,
 
   // now scan through all the boxes, level by level, and find the colleagues of
   // all possible boxes
-  int ibox;
-  for (lev=0; lev < *nlev+1; lev++) {
-    cprin_skipline(2);
-    cprinf("computing colleagues for level lev = ", &lev, 1);
-    for (ibox=0; ibox<*nboxes; ibox++) {
-      if (tree[ibox].level == lev) {
-        //cprinf("finding colleagues for ibox = ", &ibox, 1);
-        quadtree_colleagues1( &tree[ibox] );
-      }
-    }
-  }
+  quadtree_gen_colleagues(*nlev, *nboxes, tree);
 
   // plot the colleagues of a particular box
-  char buffer[100], snum[10];
+  int ibox;
+  char buffer[100], snum[16];
   for (ibox = 0; ibox<*nboxes; ibox ++){ 
     strcpy(buffer, "colltest_");
     strcpy(snum, "");
@@ -494,6 +489,29 @@ void quadtree_build(double *center, double width,
 
 
 
+void quadtree_gen_colleagues(int nlev, int nboxes, struct quadtree_box *tree) {
+  // 
+  // This routine initializes and generates all colleagues for all boxes
+  //
+
+  int lev, ibox;
+  for (lev=0; lev < nlev+1; lev++) {
+    //cprin_skipline(2);
+    //cprinf("computing colleagues for level lev = ", &lev, 1);
+    for (ibox=0; ibox<nboxes; ibox++) {
+      if (tree[ibox].level == lev) {
+        //cprinf("finding colleagues for ibox = ", &ibox, 1);
+        quadtree_colleagues1( &tree[ibox] );
+      }
+    }
+  }
+
+  return;
+}
+
+
+
+
 void quadtree_colleagues1( struct quadtree_box *box ) {
 
   // This routine finds the colleagues of box by searching through children of
@@ -504,13 +522,12 @@ void quadtree_colleagues1( struct quadtree_box *box ) {
   //
 
 
-  int id, i;
+  int i;
   struct quadtree_box *parent;
   struct quadtree_box *pcoll, *pch;
   int ncoll, npcoll;
   int j;
   double center[2], dx, dy, width;
-  double fac;
 
   // initialize all colleagues back to zero
   box->ncoll = 0;
@@ -829,8 +846,138 @@ void quadtree_plotleaves(char *filename, int nboxes, struct quadtree_box *tree,
 
 void quadtree_split(int ibox, int *nboxes, struct quadtree_box *tree) {
   //
-  // split a single box into four children based on the total number
-  // of sources and targets in the box
+  // Split a single box into four children based on the total number
+  // of sources and targets in the box. Note: This routine does NOT prune
+  // empty boxes. The resulting tree is space-filling leafs, some of which
+  // are empty.
+  //
+  // Input:
+  //   ibox - box number to split
+  //   nboxes - total number of boxes in tree
+  //   tree - array of boxes
+  //
+  // Output:
+  //   nboxes - new total number of boxes
+  //   tree - updated array of boxes
+  //
+  
+  int lev = tree[ibox].level;
+  double xc = tree[ibox].center[0];
+  double yc = tree[ibox].center[1];
+  double w = tree[ibox].width;
+
+
+  int npts = tree[ibox].npts;
+  double *xys = tree[ibox].xys;
+  int *perm = tree[ibox].perm;
+
+  
+  //
+  // first collect the nodes
+  //
+  int is[4], ns[4];
+  int i;
+  for (i=0; i<4; ++i) {
+    is[i] = 0;
+    ns[i] = 0;
+  }
+
+
+  //
+  // do sorting, based on value of box, 0, 1, 2, 3
+  // first count the zeros
+  //
+  int ikey;
+
+  for (i=0; i<npts; i++) {
+    quadtree_key(tree[ibox].center, &xys[2*i], &ikey);
+    ns[ikey] = ns[ikey] + 1;
+  }
+
+  is[0] = 0;
+  is[1] = ns[0];
+  is[2] = ns[0]+ns[1];
+  is[3] = ns[0]+ns[1]+ns[2];
+  
+  //
+  // add the new boxes to the tree, setting up correct pointers now
+  //
+  int nb = *nboxes;
+  int j;
+  
+  for (j=0; j<4; ++j) {
+    
+    //if ( ns[j] > 0 ) {
+      
+      tree[nb].id = nb;
+      tree[nb].level = lev+1;
+      tree[nb].width = w/2;
+
+      if (j==0) {
+        tree[nb].center[0] = xc-w/4;
+        tree[nb].center[1] = yc-w/4;
+      } else if (j==1) {
+        tree[nb].center[0] = xc+w/4;
+        tree[nb].center[1] = yc-w/4;
+      } else if (j==2) {
+        tree[nb].center[0] = xc-w/4;
+        tree[nb].center[1] = yc+w/4;
+      } else if (j==3) {
+        tree[nb].center[0] = xc+w/4;
+        tree[nb].center[1] = yc+w/4;
+      }
+
+      tree[nb].npts = ns[j];
+      tree[nb].xys = &(xys[2*is[j]]);
+      tree[nb].perm = &perm[is[j]];
+      
+      tree[nb].parent = &(tree[ibox]);
+
+      for (i=0; i<4; ++i) {
+        tree[nb].child[i] = NULL;
+      }
+      tree[ibox].child[j] = &(tree[nb]);
+
+      nb = nb+1;
+      *nboxes = nb;
+    //}
+
+  }
+
+  //
+  // now collect all the points that are in each box, permuting them
+  // as need be
+  //
+  int ind;
+
+  for (j=0; j<4; ++j) {
+    ind = is[j];
+
+    for (i=is[j]; i<npts; ++i) {
+      quadtree_key(tree[ibox].center, &xys[2*i], &ikey);
+      if (ikey == j) {
+        quadtree_swapd(2, &xys[2*i], &xys[2*ind]);
+        quadtree_swapi(1, &perm[i], &perm[ind]);
+        ind=ind+1;
+      }
+    }
+    
+  }
+  
+  return;
+}
+
+
+
+
+
+
+void quadtree_split_prune(int ibox, int *nboxes, struct quadtree_box *tree) {
+  //
+  // Split a single box into four children based on the total number
+  // of sources and targets in the box. Note: This routine does NOT prune
+  // empty boxes. The resulting tree is space-filling leafs, some of which
+  // are empty.
   //
   // Input:
   //   ibox - box number to split

@@ -108,6 +108,9 @@ int main (int argc, char* argv[])
   quadtree_plotboxes("2dtree_lr", nboxes, tree, "LR boxes");
   quadtree_plotleaves("2dtree_leaves_lr", nboxes, tree, "LR leaves");
 
+  // re-compute the colleagues since there are new boxes
+  quadtree_gen_colleagues(nlev, nboxes, tree);
+
   exit(0);
 
   // now check that the list generation is working, generate list1 for
@@ -115,7 +118,7 @@ int main (int argc, char* argv[])
   int nlist1, ibox;
   ibox = 218;
   struct quadtree_box *list1[1000];
-  quadtree_get_list1(&tree[ibox], nlist1, list1);
+  quadtree_get_list1(&tree[ibox], &nlist1, list1);
 
   exit(0);
 
