@@ -43,7 +43,7 @@ struct quadtree_box {
 
 
 void quadtree_get_list1(struct quadtree_box *box, int *nlist1,
-    struct quadtree_box *list1);
+    struct quadtree_box **list1);
 
 void quadtee_fixtree_lr(int *nlev, int *nboxes, struct quadtree_box *tree);
 

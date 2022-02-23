@@ -13,7 +13,7 @@
 
 
 void quadtree_get_list1(struct quadtree_box *box, int *nlist1,
-    struct quadtree_box *list1) {
+    struct quadtree_box **list1) {
   //
   // This routine computes, on the fly, LIST1 for a box which is defined to be
   // the self box, plus all adjacent neighbors. IT IS ASSUMED that the tree
@@ -24,25 +24,34 @@ void quadtree_get_list1(struct quadtree_box *box, int *nlist1,
   // initialize
   *nlist1 = 0;
   int isleaf;
-  quadtree_isleaf(box, isleaf);
+  quadtree_isleaf(box, &isleaf);
   if (isleaf == 1) return;
 
   // get colleague info for box
-  int i, ncoll;
+  int i, ncoll, nl1;
   struct quadtree_box *coll;
   double width;
 
   width = box->width;
   ncoll = box->ncoll;
+  nl1 = 0;
   for (i=0; i<ncoll; i++) {
 
     coll = box->colls[i];
     
     // if the colleage is a leaf, it is in list 1
-    quadtree_isleaf(coll, isleaf);
+    quadtree_isleaf(coll, &isleaf);
     if (isleaf == 1) {
-      //list1[0] = 
+      list1[nl1] = coll;
     }
+
+    // check children of colleagues
+
+
+    // lastly, check colleages of parent (using assumption that tree is
+    // level-restricted)
+
+
 
 
   }

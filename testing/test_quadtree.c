@@ -111,8 +111,6 @@ int main (int argc, char* argv[])
   // re-compute the colleagues since there are new boxes
   quadtree_gen_colleagues(nlev, nboxes, tree);
 
-  exit(0);
-
   // now check that the list generation is working, generate list1 for
   // a box
   int nlist1, ibox;
