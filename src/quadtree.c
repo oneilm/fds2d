@@ -32,13 +32,15 @@ void quadtree_get_list1(struct quadtree_box *box, int *nlist1,
   if (isleaf == 0) return;
 
   // get colleague info for box
-  int i, ncoll, nl1;
-  struct quadtree_box *coll;
+  int i, j, ncoll, nl1;
+  struct quadtree_box *coll, *child;
   double width;
+  double dx, dy, dist;
 
   width = box->width;
   nl1 = 0;
   cprinf("finding list 1 for box = ", &(box->id), 1);
+  cprind("box center = ", (box->center), 2);
 
   // First, check the colleagues: if any are leaves, they are in list1,
   // otherwise check their children
@@ -51,26 +53,52 @@ void quadtree_get_list1(struct quadtree_box *box, int *nlist1,
     if (isleaf == 1) {
       list1[nl1] = coll;
       nl1 = nl1 + 1;
+      cprinf("colleague id = ", &(coll->id), 1);
+      cprind("colleague center = ", (coll->center), 2);
     }
     // check children of colleagues
+    else {
+      for (j=0; j<4; j++) {
+        child = coll->child[j];
+        // no need to check if it is a leaf, since by assumption the tree is
+        // level restricted
+        if (child == NULL) continue;
+        dx = fabs(box->center[0] - child->center[0]);
+        dy = fabs(box->center[1] - child->center[1]);
+        dist = 0.75*width*1.000001;
+        if ( (dx <= dist) && (dy <= dist) ) {
+          list1[nl1] = child;
+          nl1 = nl1 + 1;
+        }
+
+
+      }
+    }
   }
 
   // lastly, check colleages of parent (using assumption that tree is
   // level-restricted)
-  struct quadtree_box parent;
+  struct quadtree_box *parent;
   parent = box->parent;
   ncoll = parent->ncoll;
   cprinf("ncoll for parent = ", &ncoll, 1);    
   for (i=0; i<ncoll; i++) {    
+
     coll = parent->colls[i];
     quadtree_isleaf(coll, &isleaf);
-    cprinf("isleaf for parent colleague = ", &isleaf, 1);
-    if (isleaf == 1) {
+    //cprinf("isleaf for parent colleague = ", &isleaf, 1);
+    if (isleaf == 0) continue;
+
+    // check the distance, if close enough it is in list 1
+    dx = fabs(box->center[0] - coll->center[0]);
+    dy = fabs(box->center[1] - coll->center[1]);
+    dist = 1.5*width*1.000001;
+    if ( (dx <= dist) && (dy <= dist) ) {
       list1[nl1] = coll;
       nl1 = nl1 + 1;
     }
-  }
 
+  }
 
   *nlist1 = nl1;
 
@@ -693,6 +721,107 @@ void quadtree_plotcolleagues(char *filename, int nboxes,
   fprintf(fp, "rect = mpl.patches.Rectangle([%e,%e], %e, %e)\n", xc, yc, w, w);
   fprintf(fp, "patches.append(rect)\n");
   fprintf(fp, "collection = mpl.collections.PatchCollection(patches, alpha=0.6, facecolor='red', edgecolor='black')\n");
+  fprintf(fp, "ax.add_collection(collection)\n");
+
+
+
+  // plot the sources now
+  int npts = tree[0].npts;
+  double *xys = tree[0].xys;
+
+  fprintf(fp, "print('. . . plotting sources')\n");
+  fprintf(fp, "xs = np.zeros(%d)\n", npts);
+  fprintf(fp, "ys = np.zeros(%d)\n", npts);
+
+  for (i=0; i<npts; i++) {
+    fprintf(fp, "xs[%d] = %e\n", i, xys[2*i]);
+  }
+
+  for (i=0; i<npts; i++) {
+    fprintf(fp, "ys[%d] = %e\n", i, xys[2*i+1]);
+  }
+
+  fprintf(fp, "plt.scatter(xs, ys, s=5, c='blue', alpha=0.4)\n");
+
+  fprintf(fp, "plt.axis('equal')\n");
+  fprintf(fp, "plt.axis('on')\n");
+  fprintf(fp, "plt.tight_layout()\n");
+  fprintf(fp, "print('. . . showing plot')\n");  
+  fprintf(fp, "plt.show()\n");
+
+  fclose(fp);
+
+  return;
+}
+
+
+
+
+
+void quadtree_plot_list1(char *filename, int nboxes,
+    struct quadtree_box *tree, struct quadtree_box *box, 
+    int nlist1, struct quadtree_box **list1, char *title) {
+  //
+  // Plot all boxes and highlight box and its colleages.
+  //
+  char buffer[100];
+  FILE *fp;
+
+  strcpy(buffer, filename);
+  strcat(buffer, ".py");
+  fp = fopen(buffer, "w");
+
+  
+  fprintf(fp, "import matplotlib.pyplot as plt\n");
+  fprintf(fp, "import numpy as np\n");
+  fprintf(fp, "import matplotlib as mpl\n");
+  fprintf(fp, "\n");
+  fprintf(fp, "fig, ax = plt.subplots()\n");
+  fprintf(fp, "patches = []\n");
+  
+  fprintf(fp, "print('. . . constructing boxes')\n");  
+
+  int i;
+  double xc, yc, w;
+  for (i=0; i<nboxes; i++) {
+  //for (i=0; i<5; i++) {
+    w = tree[i].width;
+    xc = tree[i].center[0] - w/2;
+    yc = tree[i].center[1] - w/2;
+    fprintf(fp, "\n");
+    fprintf(fp, "rect = mpl.patches.Rectangle([%e,%e], %e, %e)\n", xc, yc, w, w);
+    fprintf(fp, "patches.append(rect)\n");
+  }
+
+  fprintf(fp, "print('. . . plotting boxes')\n");  
+  fprintf(fp, "collection = mpl.collections.PatchCollection(patches, alpha=0.2, facecolor='grey', edgecolor='black')\n");
+  fprintf(fp, "ax.add_collection(collection)\n");
+
+
+  // plot the list1 of box now
+  fprintf(fp, "patches = []\n");
+
+  for (i=0; i<nlist1; i++) {
+    w = list1[i]->width;
+    xc = list1[i]->center[0] - w/2;
+    yc = list1[i]->center[1] - w/2;
+    fprintf(fp, "\n");
+    fprintf(fp, "rect = mpl.patches.Rectangle([%e,%e], %e, %e)\n", xc, yc, w, w);
+    fprintf(fp, "patches.append(rect)\n");
+  }
+  fprintf(fp, "print('. . . highlighting list 1')\n");  
+  fprintf(fp, "collection = mpl.collections.PatchCollection(patches, alpha=0.2, facecolor='green', edgecolor='black')\n");
+  fprintf(fp, "ax.add_collection(collection)\n");
+
+  // highlight the self block
+  fprintf(fp, "\n");
+  fprintf(fp, "patches = []\n");
+  w = box->width;
+  xc = box->center[0] - w/2;
+  yc = box->center[1] - w/2;
+  fprintf(fp, "rect = mpl.patches.Rectangle([%e,%e], %e, %e)\n", xc, yc, w, w);
+  fprintf(fp, "patches.append(rect)\n");
+  fprintf(fp, "collection = mpl.collections.PatchCollection(patches, alpha=0.6, facecolor='green', edgecolor='black')\n");
   fprintf(fp, "ax.add_collection(collection)\n");
 
 
