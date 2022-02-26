@@ -111,12 +111,23 @@ int main (int argc, char* argv[])
   // re-compute the colleagues since there are new boxes
   quadtree_gen_colleagues(nlev, nboxes, tree);
 
+
+
   // now check that the list generation is working, generate list1 for
   // a box
   int nlist1, ibox;
-  ibox = 218;
+  ibox = 169;
+  quadtree_plotcolleagues("coll1", nboxes, tree,
+          &(tree[ibox]), "Colleagues for test box");
+
+  quadtree_printbox("sample box info", &tree[ibox]);
   struct quadtree_box *list1[1000];
   quadtree_get_list1(&tree[ibox], &nlist1, list1);
+
+//  quadtree_plot_list1("list1", nboxes, tree,
+//          &(tree[ibox]), "List 1 for test box");
+
+
 
   exit(0);
 
