@@ -23,7 +23,7 @@ int main (int argc, char* argv[])
 
   cprin_init("stdout","fort.13");  
   
-  int npts = 1000;
+  int npts = 4000;
   
   cprin_skipline(1);
   cprinf("npts = ", &npts, 1);
@@ -60,15 +60,10 @@ int main (int argc, char* argv[])
   struct quadtree_box *tree = malloc(maxboxes*sizeof(struct quadtree_box));
   struct quadtree_opts opts;
 
-  //int nmax = 20;
-  //if (nmax > (m+n)) opts.maxlev = 0;
-  //opts.maxlev = (int) (log((double)((m+n)/2)/nmax)/log(4.0))+1;
-  //opts.maxlev = opts.maxlev + 2;
-  //opts.maxlev = 4 + nfac;
-
-  opts.maxlev = 30;
+  int nmax = 20;
+  opts.maxlev = 40;
   opts.maxboxes = maxboxes;  
-  opts.nmax = 20;
+  opts.nmax = nmax;
   opts.maxwidth = 10;
 
   cprinf("opts.maxlev = ", &opts.maxlev, 1);

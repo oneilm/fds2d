@@ -39,13 +39,13 @@ void quadtree_get_list1(struct quadtree_box *box, int *nlist1,
 
   width = box->width;
   nl1 = 0;
-  cprinf("finding list 1 for box = ", &(box->id), 1);
-  cprind("box center = ", (box->center), 2);
+  //cprinf("finding list 1 for box = ", &(box->id), 1);
+  //cprind("box center = ", (box->center), 2);
 
   // First, check the colleagues: if any are leaves, they are in list1,
   // otherwise check their children
   ncoll = box->ncoll;
-  cprinf("ncoll for box = ", &ncoll, 1);    
+  //cprinf("ncoll for box = ", &ncoll, 1);    
   for (i=0; i<ncoll; i++) {    
     coll = box->colls[i];
     quadtree_isleaf(coll, &isleaf);
@@ -53,8 +53,8 @@ void quadtree_get_list1(struct quadtree_box *box, int *nlist1,
     if (isleaf == 1) {
       list1[nl1] = coll;
       nl1 = nl1 + 1;
-      cprinf("colleague id = ", &(coll->id), 1);
-      cprind("colleague center = ", (coll->center), 2);
+      //cprinf("colleague id = ", &(coll->id), 1);
+      //cprind("colleague center = ", (coll->center), 2);
     }
     // check children of colleagues
     else {
@@ -102,8 +102,8 @@ void quadtree_get_list1(struct quadtree_box *box, int *nlist1,
 
   *nlist1 = nl1;
 
-  cprinf("found list 1 for box = ", &(box->id), 1);
-  cprinf("nlist1 = ", nlist1, 1);
+  //cprinf("found list 1 for box = ", &(box->id), 1);
+  //cprinf("nlist1 = ", nlist1, 1);
 
   return;
 }
@@ -394,7 +394,9 @@ void quadtree_build_lr(double *center, double width,
 
   quadtree_build(center, width, npts, xys, perm, opts, nlev, nboxes, tree);
   
-  int i, nprev, nnew;
+  int i, nprev, nnew, n0;
+  n0 = *nboxes;
+
   for (i=0; i<1000; i++) {
     cprinf("fixing tree, iteration i = ", &i, 1);
     nprev = *nboxes;
@@ -412,6 +414,12 @@ void quadtree_build_lr(double *center, double width,
     cprin_message(". . . exiting code");
     exit(0);
   }
+
+  // re-compute the colleagues since there are new boxes
+  if (*nboxes > n0) {
+    quadtree_gen_colleagues(*nlev, *nboxes, tree);
+  }
+
 
   return;
 }
@@ -650,7 +658,6 @@ void quadtree_colleagues1( struct quadtree_box *box ) {
 
   return;
 }
-
 
 
 

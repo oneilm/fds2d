@@ -8,9 +8,9 @@ ifeq ($(HOST),linux-gnu)
   FC = gfortran
   FFLAGS = -O2 -g -w -fallow-argument-mismatch
   CC = gcc
-  IDIRS = -I../include -I../src -I$(HOME)/.local/include
+  IDIRS = -I../include -I../src
   CFLAGS = -std=c99 -Wall -O2 -funroll-loops -march=native
-  LDFLAGS = -lopenblas -llapack -L$(HOME)/.local/lib
+  LDFLAGS = -lopenblas -llapack
   LINK = gfortran -o $(PROJECT) 
 endif
 
@@ -39,7 +39,7 @@ endif
 
 
 csrcs = test_wrs2d.c ../src/cprini.c ../src/quadtree.c ../src/wrs2d.c \
-  ../src/kernels.c
+  ../src/kernels.c ../src/cplot.c
 
 xsrcs = 
 
