@@ -394,7 +394,9 @@ void quadtree_build_lr(double *center, double width,
 
   quadtree_build(center, width, npts, xys, perm, opts, nlev, nboxes, tree);
   
-  int i, nprev, nnew;
+  int i, nprev, nnew, n0;
+  n0 = *nboxes;
+
   for (i=0; i<1000; i++) {
     cprinf("fixing tree, iteration i = ", &i, 1);
     nprev = *nboxes;
@@ -412,6 +414,12 @@ void quadtree_build_lr(double *center, double width,
     cprin_message(". . . exiting code");
     exit(0);
   }
+
+  // re-compute the colleagues since there are new boxes
+  if (*nboxes > n0) {
+    quadtree_gen_colleagues(*nlev, *nboxes, tree);
+  }
+
 
   return;
 }
@@ -650,7 +658,6 @@ void quadtree_colleagues1( struct quadtree_box *box ) {
 
   return;
 }
-
 
 
 
