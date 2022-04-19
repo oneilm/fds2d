@@ -20,8 +20,8 @@ void quadtree_get_list1(struct quadtree_box *box, int *nlist1,
     struct quadtree_box **list1) {
   //
   // This routine computes, on the fly, LIST1 for a box which is defined to be
-  // the self box, plus all adjacent neighbors. IT IS ASSUMED that the tree
-  // in which box resides is a level-restricted one, meaning that adjacent leaf
+  // the self box, plus all adjacent neighbors. IT IS ASSUMED that the tree in
+  // which box resides is a level-restricted one, meaning that adjacent leaf
   // boxes are only up or down one level at most.
   //
 
